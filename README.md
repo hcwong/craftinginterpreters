@@ -1,4 +1,4 @@
-## sbt project compiled with Scala 3
+## Crafting Interpreters, done in Scala
 
 ### Usage
 
