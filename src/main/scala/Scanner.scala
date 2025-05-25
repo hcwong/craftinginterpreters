@@ -3,11 +3,42 @@ package scanner
 import tokens.{Token, TokenType}
 import LoxApp.LoxApp
 
+import scala.collection.mutable.ArrayBuffer
+
 class Scanner(source: String) {
-  private[this] val tokens: Seq[Token] = Seq.empty
-  private[this] val start: Int = 0
+  private[this] val tokens: ArrayBuffer[Token] = ArrayBuffer.empty
+  private[this] var start: Int = 0
   private[this] var current: Int = 0
   private[this] var line: Int = 0
+
+  final private[this] val keywords: Map[String, TokenType] = Map(
+    "and" -> TokenType.AND,
+    "class" -> TokenType.CLASS,
+    "else" -> TokenType.ELSE,
+    "false" -> TokenType.FALSE,
+    "for" -> TokenType.FOR,
+    "fun" -> TokenType.FUN,
+    "if" -> TokenType.IF,
+    "nil" -> TokenType.NIL,
+    "or" -> TokenType.OR,
+    "print" -> TokenType.PRINT,
+    "return" -> TokenType.RETURN,
+    "super" -> TokenType.SUPER,
+    "this" -> TokenType.THIS,
+    "true" -> TokenType.TRUE,
+    "var" -> TokenType.VAR,
+    "while" -> TokenType.WHILE
+  )
+
+  def scanTokens(): ArrayBuffer[Token] = {
+    while (!isAtEnd) {
+      start = current
+      scanToken()
+    }
+
+    this.tokens += Token(TokenType.EOF, "", null, line)
+    this.tokens
+  }
 
   private def scanToken(): Unit = {
     val c = advance()
@@ -30,7 +61,23 @@ class Scanner(source: String) {
       case '<'                     => addToken(TokenType.LESS)
       case '>' if matchesChar('=') => addToken(TokenType.GREATER_EQUAL)
       case '>'                     => addToken(TokenType.GREATER)
-      case char                    => LoxApp.error(line, f"Unexpected character: $char")
+      case '/' if matchesChar('/') =>
+        while (peek() != '\n' && !isAtEnd) {
+          advance()
+        }
+      case '/' =>
+        addToken(TokenType.SLASH)
+      case '"' => string()
+      // whitespace
+      case ' '  => ()
+      case '\r' => ()
+      case '\t' => ()
+      case '\n' =>
+        line += 1
+        ()
+      case c if c.isDigit              => number()
+      case c if c.isLetter || c == '_' => identifier()
+      case char                        => LoxApp.error(line, f"Unexpected character: $char")
     }
   }
 
@@ -47,7 +94,7 @@ class Scanner(source: String) {
 
   private def addToken(tokenType: TokenType, literal: AnyRef): Unit = {
     val text = source.substring(start, current)
-    tokens :+ (Token(tokenType, text, literal, line))
+    this.tokens += Token(tokenType, text, literal, line)
     ()
   }
 
@@ -58,6 +105,57 @@ class Scanner(source: String) {
     else {
       current += 1
       true
+    }
+  }
+
+  private def peek(): Char = {
+    if (isAtEnd) '\u0000' else source.charAt(current)
+  }
+
+  private def peekNext(): Char = {
+    if (current + 1 >= source.length) '\u0000'
+    else source.charAt(current + 1)
+  }
+
+  private def string(): Unit = {
+    while (peek() != '"' && !isAtEnd) {
+      if (peek() == '\n') line += 1
+
+      advance()
+    }
+
+    if (isAtEnd) {
+      LoxApp.error(line, "Unterminated string")
+    }
+
+    advance()
+
+    val s = source.substring(start + 1, current - 1)
+    addToken(TokenType.STRING, s)
+  }
+
+  private def number(): Unit = {
+    while (peek().isDigit) advance()
+
+    // Looks for decimal point
+    if (peek() == '.' && peekNext().isDigit) advance()
+
+    while (peek().isDigit) advance()
+
+    addToken(
+      TokenType.NUMBER,
+      java.lang.Double.valueOf(source.substring(start, current).toDouble)
+    )
+  }
+
+  private def identifier(): Unit = {
+    while (peek().isLetterOrDigit) advance()
+
+    val maybeKeyword = keywords.get(source.substring(start, current))
+    maybeKeyword match {
+      case Some(tokenType) => addToken(tokenType)
+      // User defined identifier
+      case None => addToken(TokenType.IDENTIFIER)
     }
   }
 }

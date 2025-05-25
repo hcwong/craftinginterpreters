@@ -1,6 +1,7 @@
 package LoxApp
 
 import scala.io.StdIn.readLine
+import scanner.Scanner
 
 object LoxApp {
   private var hadError: Boolean = false
@@ -18,7 +19,7 @@ object LoxApp {
   }
 
   def runFile(path: String): Unit = {
-    run(os.read(os.pwd/path))
+    run(os.read(os.pwd / path))
 
     if (hadError) {
       sys.exit(65)
@@ -26,20 +27,20 @@ object LoxApp {
   }
 
   def runPrompt(): Unit = {
-    while(true) {
-      println("> ")
+    while (true) {
+      print("> ")
       val line = readLine()
       line match {
         case null => return
-        case "" => ()
-        case _ => run(line)
+        case ""   => ()
+        case _    => run(line)
       }
       hadError = false
     }
   }
 
   private def run(source: String): Unit = {
-    println(source)
+    println(Scanner(source).scanTokens())
   }
 
   def error(line: Long, message: String): Unit = {
