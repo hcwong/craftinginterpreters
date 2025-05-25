@@ -13,13 +13,14 @@ object Ast {
       extends Expr
   case class Grouping(expr: Expr) extends Expr
 
-  implicit class ExprPrinter(expr: Expr) {
-    def toString: String = expr match {
-      case Literal(value)        => s"( Literal: ${value.toString} )"
-      case Unary(operator, expr) => s"( Unary: $operator $expr )"
-      case Binary(leftExpr, operator, rightExpr) =>
-        s"( Binary: $leftExpr, $operator, $rightExpr )"
-      case Grouping(expr) => s"( Grouping: $expr )"
+  // TODO: Use Scala 3 typeclasses to implement implicit resolution
+  extension(expr: Expr) {
+    def print: String = expr match {
+      case Literal(value)        => s"( Literal: $value )"
+      case Unary(operator, expr) => s"( Unary: $operator ${expr.print} )"
+      case Binary(left, op, right) =>
+        s"( Binary: ${left.print}, $op, ${right.print} )"
+      case Grouping(expr) => s"( Grouping: ${expr.print} )"
     }
   }
 }
