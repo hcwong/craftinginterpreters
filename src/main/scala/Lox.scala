@@ -19,7 +19,7 @@ object LoxApp {
   }
 
   def runFile(path: String): Unit = {
-    run(os.read(os.pwd / path))
+    run(os.read(os.Path(path, os.pwd)))
 
     if (hadError) {
       sys.exit(65)

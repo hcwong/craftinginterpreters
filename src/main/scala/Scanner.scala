@@ -65,6 +65,7 @@ class Scanner(source: String) {
         while (peek() != '\n' && !isAtEnd) {
           advance()
         }
+      case '/' if matchesChar('*') => multiLineComment()
       case '/' =>
         addToken(TokenType.SLASH)
       case '"' => string()
@@ -156,6 +157,22 @@ class Scanner(source: String) {
       case Some(tokenType) => addToken(tokenType)
       // User defined identifier
       case None => addToken(TokenType.IDENTIFIER)
+    }
+  }
+
+  def multiLineComment(): Unit = {
+    while (peek() != '*' && peekNext() != '/' && !isAtEnd) {
+      if (peek() == '\n') line += 1
+
+      advance()
+    }
+
+    if (isAtEnd) {
+      ()
+    } else {
+      // Advance twice to consume */
+      advance()
+      advance()
     }
   }
 }

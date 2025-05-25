@@ -6,5 +6,5 @@ case class Token(
     literal: AnyRef,
     line: Long
 ) {
-  override def toString: String = s"$tokenType $lexeme $literal"
+  override def toString: String = s"$tokenType $lexeme $literal $line"
 }
