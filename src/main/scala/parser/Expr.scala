@@ -1,12 +1,27 @@
-package ast
+package parser
 
 import tokens.TokenType
 
-// Dislike the visitor pattern
-object Ast {
-  sealed trait Expr
+sealed trait Expr
 
-  case class Literal(value: AnyVal) extends Expr
+// Dislike the visitor pattern
+object Expr {
+  private sealed trait Primitive
+  case class TruePrimitive(value: true) extends Primitive
+  case class FalsePrimitive(value: false) extends Primitive
+  case class StringPrimitive(value: String) extends Primitive with AnyVal
+  case class IntPrimitive(value: Int) extends Primitive with AnyVal
+  case class NullPrimitive(value: null) extends Primitive
+
+  case class Literal(value: Primitive) extends Expr
+  object Literal {
+    def apply(value: true) = TruePrimitive(value)
+    def apply(value: false) = FalsePrimitive(value)
+    def apply(value: String) = StringPrimitive(value)
+    def apply(value: Int) = IntPrimitive(value)
+    def apply(value: null) = NullPrimitive(value)
+  }
+
   // TODO: Narrow down the type of operator. Not all tokens are operators
   case class Unary(operator: TokenType, expr: Expr) extends Expr
   case class Binary(leftExpr: Expr, operator: TokenType, rightExpr: Expr)
