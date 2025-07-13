@@ -93,7 +93,7 @@ class Scanner(source: String) {
 
   private def addToken(tokenType: TokenType): Unit = addToken(tokenType, null)
 
-  private def addToken(tokenType: TokenType, literal: AnyRef): Unit = {
+  private def addToken(tokenType: TokenType, literal: Any): Unit = {
     val text = source.substring(start, current)
     this.tokens += Token(tokenType, text, literal, line)
     ()

@@ -6,20 +6,19 @@ sealed trait Expr
 
 // Dislike the visitor pattern
 object Expr {
-  private sealed trait Primitive
-  case class TruePrimitive(value: true) extends Primitive
-  case class FalsePrimitive(value: false) extends Primitive
-  case class StringPrimitive(value: String) extends Primitive with AnyVal
-  case class IntPrimitive(value: Int) extends Primitive with AnyVal
-  case class NullPrimitive(value: null) extends Primitive
+  sealed trait Literal extends Expr
+  private[Expr] case object TrueLiteral extends Literal
+  private[Expr] case object FalseLiteral extends Literal
+  private[Expr] case class StringLiteral(value: String) extends Literal
+  private[Expr] case class IntLiteral(value: Int) extends Literal
+  private[Expr] case object NullLiteral extends Literal
 
-  case class Literal(value: Primitive) extends Expr
   object Literal {
-    def apply(value: true) = TruePrimitive(value)
-    def apply(value: false) = FalsePrimitive(value)
-    def apply(value: String) = StringPrimitive(value)
-    def apply(value: Int) = IntPrimitive(value)
-    def apply(value: null) = NullPrimitive(value)
+    def apply(value: true) = TrueLiteral
+    def apply(value: false) = FalseLiteral
+    def apply(value: String) = StringLiteral(value)
+    def apply(value: Int) = IntLiteral(value)
+    def apply(value: Null) = NullLiteral
   }
 
   // TODO: Narrow down the type of operator. Not all tokens are operators
@@ -31,7 +30,11 @@ object Expr {
   // TODO: Use Scala 3 typeclasses to implement implicit resolution
   extension(expr: Expr) {
     def print: String = expr match {
-      case Literal(value)        => s"( Literal: $value )"
+      case TrueLiteral           => s"( Literal: true )"
+      case FalseLiteral          => s"( Literal: false )"
+      case StringLiteral(value)  => s"( Literal: $value )"
+      case IntLiteral(value)     => s"( Literal: $value )"
+      case NullLiteral           => s"( Null Literal )"
       case Unary(operator, expr) => s"( Unary: $operator ${expr.print} )"
       case Binary(left, op, right) =>
         s"( Binary: ${left.print}, $op, ${right.print} )"
