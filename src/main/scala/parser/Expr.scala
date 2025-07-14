@@ -26,6 +26,8 @@ object Expr {
   case class Unary(operator: TokenType, expr: Expr) extends Expr
   case class Binary(leftExpr: Expr, operator: TokenType, rightExpr: Expr)
       extends Expr
+  case class Ternary(condition: Expr, positive: Expr, negative: Expr)
+      extends Expr
   case class Grouping(expr: Expr) extends Expr
 
   // TODO: Use Scala 3 typeclasses to implement implicit resolution
@@ -39,6 +41,8 @@ object Expr {
       case Unary(operator, expr) => s"( Unary: $operator ${expr.print} )"
       case Binary(left, op, right) =>
         s"( Binary: ${left.print}, $op, ${right.print} )"
+      case Ternary(condition, positive, negative) =>
+        s"( Ternary: (${condition.print} ? ${positive.print} : ${negative.print}) )"
       case Grouping(expr) => s"( Grouping: ${expr.print} )"
     }
   }

@@ -62,7 +62,7 @@ object LoxApp {
     if (token.tokenType == TokenType.EOF) {
       report(token.line, "at end", message)
     } else {
-      report(token.line, s"at '${token.lexeme}''", message)
+      report(token.line, s"at '${token.lexeme}'", message)
     }
   }
 

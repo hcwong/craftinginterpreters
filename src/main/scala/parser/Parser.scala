@@ -24,19 +24,33 @@ class Parser(
     catch case _: ParseException => None
   }
 
-  /** The complete grammar is as follows expression -> equality equality ->
-    * comparison ( '!=' | '==' comparison )* comparison -> term ('>=' | '<=' |
-    * '>' | '<' term)* term -> factor ( '+' | '-' factor)* factors are higher
-    * precedence than term due to BODMAS factor -> unary ('*' | '/' unary)*
-    * unary -> ('-' | '!' unary)* | primary primary -> boolean | number | string
-    * \| null | parentheses expression (expr)
-    *
-    * Note that we are careful to avoid left recursion, and in no part of the
-    * grammar do we call the same rule as the first term. Else we would stack
-    * overflow.
-    */
+  // The complete grammar is as follows expression -> ternary
+  // ternary -> equality ('?' expr ':' expr)*
+  // equality -> comparison ( '!=' | '==' comparison )*
+  // comparison -> term ('>=' | '<=' | '>' | '<' term)*
+  // term -> factor ( '+' | '-' factor)* factors are higher precedence than term due to BODMAS
+  // factor -> unary ('*' | '/' unary)*
+  // unary -> ('-' | '!' unary)* | primary
+  // primary -> boolean | number | string | null | parentheses expression (expr)
+  //
+  // Note that we are careful to avoid left recursion, and in no part of the
+  // grammar do we call the same rule as the first term. Else we would stack
+  // overflow.
 
-  private def expression: Expr = equality
+  private def expression: Expr = ternaryOperator
+
+  private def ternaryOperator: Expr = {
+    var expr: Expr = equality
+
+    while (checkAndAdvance(Seq(TokenType.QUESTION_MARK))) {
+      val positive = equality
+      consume(TokenType.COLON, "expected ':' for a ternary operator")
+      val negative = equality
+      expr = Expr.Ternary(expr, positive, negative)
+    }
+
+    expr
+  }
 
   private def equality: Expr = {
     var expr: Expr = comparison
