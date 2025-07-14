@@ -4,7 +4,8 @@ import tokens.TokenType
 
 sealed trait Expr
 
-// Dislike the visitor pattern
+/** I dislike the Visitor Pattern I implement expressions as an ADT
+  */
 object Expr {
   sealed trait Literal extends Expr
   private[Expr] case object TrueLiteral extends Literal
@@ -28,7 +29,7 @@ object Expr {
   case class Grouping(expr: Expr) extends Expr
 
   // TODO: Use Scala 3 typeclasses to implement implicit resolution
-  extension(expr: Expr) {
+  extension (expr: Expr) {
     def print: String = expr match {
       case TrueLiteral           => s"( Literal: true )"
       case FalseLiteral          => s"( Literal: false )"

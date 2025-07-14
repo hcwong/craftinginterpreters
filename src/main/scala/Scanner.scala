@@ -5,6 +5,9 @@ import LoxApp.LoxApp
 
 import scala.collection.mutable.ArrayBuffer
 
+/** This class translates a source (file or CLI Repl) into Tokens which can
+  * later be operated on
+  */
 class Scanner(source: String) {
   private[this] val tokens: ArrayBuffer[Token] = ArrayBuffer.empty
   private[this] var start: Int = 0
@@ -78,7 +81,7 @@ class Scanner(source: String) {
         ()
       case c if c.isDigit              => number()
       case c if c.isLetter || c == '_' => identifier()
-      case char                        => LoxApp.error(line, f"Unexpected character: $char")
+      case char => LoxApp.error(line, f"Unexpected character: $char")
     }
   }
 
@@ -114,6 +117,7 @@ class Scanner(source: String) {
   }
 
   private def peekNext(): Char = {
+    // If exceeds length of source, return null character
     if (current + 1 >= source.length) '\u0000'
     else source.charAt(current + 1)
   }
@@ -145,7 +149,7 @@ class Scanner(source: String) {
 
     addToken(
       TokenType.NUMBER,
-      java.lang.Double.valueOf(source.substring(start, current).toDouble)
+      source.substring(start, current).toInt
     )
   }
 
