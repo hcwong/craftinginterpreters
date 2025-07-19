@@ -3,10 +3,12 @@ package LoxApp
 import scala.io.StdIn.readLine
 import scanner.Scanner
 import tokens.{Token, TokenType}
-import parser.Parser
+import parser.{Parser, RuntimeError}
+import runtime.Interpreter
 
 object LoxApp {
   private var hadError: Boolean = false
+  private var hadRuntimeError: Boolean = false
 
   def main(args: Array[String]): Unit = {
     val argLen = args.length
@@ -25,6 +27,8 @@ object LoxApp {
 
     if (hadError) {
       sys.exit(65)
+    } else if (hadRuntimeError) {
+      sys.exit(70)
     }
   }
 
@@ -49,7 +53,7 @@ object LoxApp {
     if (hadError) {
       ()
     } else {
-      exprOpt.foreach(expr => println(expr.print))
+      exprOpt.foreach(expr => Interpreter.interpret(expr))
       ()
     }
   }
@@ -64,6 +68,11 @@ object LoxApp {
     } else {
       report(token.line, s"at '${token.lexeme}'", message)
     }
+  }
+
+  def runtimeError(error: RuntimeError): Unit = {
+    System.err.println(s"${error.message}\n[line: ${error.token.line}]")
+    hadRuntimeError = true
   }
 
   def report(line: Long, where: String, message: String): Unit = {

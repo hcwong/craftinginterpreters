@@ -1,6 +1,6 @@
 package parser
 
-import tokens.TokenType
+import tokens.{Token, TokenType}
 
 sealed trait Expr
 
@@ -31,40 +31,127 @@ object Expr {
   }
 
   // TODO: Narrow down the type of operator. Not all tokens are operators
-  case class Unary(operator: TokenType, expr: Expr) extends Expr {
+  case class Unary(operator: Token, expr: Expr) extends Expr {
     def evaluateUnary: Any = {
       val exprEvaluated = expr.evaluate
 
-      operator match {
-        case TokenType.BANG => !(isTruthy(exprEvaluated))
+      operator.tokenType match {
+        case TokenType.BANG => !isTruthy(exprEvaluated)
         case TokenType.MINUS =>
           exprEvaluated match {
             case int: Int => -int
             case _ =>
-              sys.error(
+              throw RuntimeError(
+                operator,
                 s"Attempted to apply token type '-' on non number value $exprEvaluated"
               )
           }
-        case tokenType =>
-          sys.error(
-            s"Unexpected operator type '$tokenType' while evaluating unary"
+        case _ =>
+          throw RuntimeError(
+            operator,
+            s"Unexpected operator type '${operator.tokenType}' while evaluating unary"
           )
       }
     }
   }
 
-  case class Binary(leftExpr: Expr, operator: TokenType, rightExpr: Expr)
+  case class Binary(leftExpr: Expr, operator: Token, rightExpr: Expr)
       extends Expr {
     def evaluateBinary: Any = {
       val leftExprEvaluated = leftExpr.evaluate
       val rightExprEvaluated = rightExpr.evaluate
-      
-      operator match {
-        case TokenType.
+
+      operator.tokenType match {
+        case TokenType.PLUS =>
+          (leftExprEvaluated, rightExprEvaluated) match {
+            case (leftInt: Int, rightInt: Int)       => leftInt + rightInt
+            case (leftStr: String, rightStr: String) => leftStr + rightStr
+            case _ =>
+              throw RuntimeError(
+                operator,
+                s"'+' cannot be used to add $leftExprEvaluated and $rightExprEvaluated"
+              )
+          }
+        case TokenType.MINUS =>
+          (leftExprEvaluated, rightExprEvaluated) match {
+            case (leftInt: Int, rightInt: Int) => leftInt - rightInt
+            case _ =>
+              throw RuntimeError(
+                operator,
+                s"'-' cannot be used to subtract $leftExprEvaluated and $rightExprEvaluated"
+              )
+          }
+        case TokenType.STAR =>
+          (leftExprEvaluated, rightExprEvaluated) match {
+            case (leftInt: Int, rightInt: Int) => leftInt * rightInt
+            case _ =>
+              throw RuntimeError(
+                operator,
+                s"'*' cannot be used to multiply $leftExprEvaluated and $rightExprEvaluated"
+              )
+          }
+        case TokenType.SLASH =>
+          (leftExprEvaluated, rightExprEvaluated) match {
+            case (leftInt: Int, rightInt: Int) if rightInt != 0 =>
+              leftInt / rightInt
+            case (_, 0) => RuntimeError(operator, "Cannot divide by 0")
+            case _ =>
+              throw RuntimeError(
+                operator,
+                s"'/' cannot be used to divide $leftExprEvaluated and $rightExprEvaluated"
+              )
+          }
+        case TokenType.GREATER =>
+          (leftExprEvaluated, rightExprEvaluated) match {
+            case (leftInt: Int, rightInt: Int) =>
+              leftInt > rightInt
+            case _ =>
+              throw RuntimeError(
+                operator,
+                s"'>' cannot be used to check if $leftExprEvaluated > $rightExprEvaluated"
+              )
+          }
+        case TokenType.GREATER_EQUAL =>
+          (leftExprEvaluated, rightExprEvaluated) match {
+            case (leftInt: Int, rightInt: Int) =>
+              leftInt >= rightInt
+            case _ =>
+              throw RuntimeError(
+                operator,
+                s"'>=' cannot be used to check if $leftExprEvaluated >= $rightExprEvaluated"
+              )
+          }
+        case TokenType.LESS =>
+          (leftExprEvaluated, rightExprEvaluated) match {
+            case (leftInt: Int, rightInt: Int) =>
+              leftInt < rightInt
+            case _ =>
+              throw RuntimeError(
+                operator,
+                s"'<' cannot be used to check if $leftExprEvaluated < $rightExprEvaluated"
+              )
+          }
+        case TokenType.LESS_EQUAL =>
+          (leftExprEvaluated, rightExprEvaluated) match {
+            case (leftInt: Int, rightInt: Int) =>
+              leftInt <= rightInt
+            case _ =>
+              throw RuntimeError(
+                operator,
+                s"'<=' cannot be used to check if $leftExprEvaluated <= $rightExprEvaluated"
+              )
+          }
+        case TokenType.BANG_EQUAL => leftExprEvaluated != rightExprEvaluated
+        case TokenType.EQUAL      => leftExprEvaluated == rightExprEvaluated
+        case _ =>
+          throw RuntimeError(
+            operator,
+            s"Unexpected operator ${operator.tokenType} in Binary expr"
+          )
       }
     }
   }
-  
+
   case class Ternary(condition: Expr, positive: Expr, negative: Expr)
       extends Expr
   // Some parsers don't use separate Exprs for Parentheses, but Lox uses it to accurately
@@ -95,6 +182,13 @@ object Expr {
       case IntLiteral(value)    => value
       case NullLiteral          => None
       case unary: Unary         => unary.evaluateUnary
+      case binary: Binary       => binary.evaluateBinary
+      case Ternary(condition, positive, negative) =>
+        if (isTruthy(condition.evaluate)) { positive.evaluate }
+        else { negative.evaluate }
+      case Grouping(expr) => expr.evaluate
     }
   }
 }
+
+case class RuntimeError(token: Token, message: String) extends RuntimeException

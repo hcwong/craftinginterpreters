@@ -56,7 +56,7 @@ class Parser(
     var expr: Expr = comparison
 
     while (checkAndAdvance(Seq(TokenType.BANG_EQUAL, TokenType.EQUAL_EQUAL))) {
-      val operator = previous.tokenType
+      val operator = previous
       val right = comparison
       expr = Expr.Binary(expr, operator, right)
     }
@@ -77,7 +77,7 @@ class Parser(
         )
       )
     ) {
-      val operator = previous.tokenType
+      val operator = previous
       val right = term
       expr = Expr.Binary(expr, operator, right)
     }
@@ -89,7 +89,7 @@ class Parser(
     var expr: Expr = factor
 
     while (checkAndAdvance(Seq(TokenType.PLUS, TokenType.MINUS))) {
-      val operator = previous.tokenType
+      val operator = previous
       val right = factor
       expr = Expr.Binary(expr, operator, right)
     }
@@ -101,7 +101,7 @@ class Parser(
     var expr: Expr = unary
 
     while (checkAndAdvance(Seq(TokenType.SLASH, TokenType.STAR))) {
-      val operator = previous.tokenType
+      val operator = previous
       val right = unary
       expr = Expr.Binary(expr, operator, right)
     }
@@ -111,7 +111,7 @@ class Parser(
 
   private def unary: Expr = {
     if (checkAndAdvance(Seq(TokenType.BANG, TokenType.MINUS))) {
-      val operator = previous.tokenType
+      val operator = previous
       // Nothing stopping a user from doing !!true, so call unary again
       val expr = unary
       Expr.Unary(operator, expr)
