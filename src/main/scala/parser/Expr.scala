@@ -11,14 +11,14 @@ object Expr {
   private[Expr] case object TrueLiteral extends Literal
   private[Expr] case object FalseLiteral extends Literal
   private[Expr] case class StringLiteral(value: String) extends Literal
-  private[Expr] case class IntLiteral(value: Int) extends Literal
+  private[Expr] case class DoubleLiteral(value: Double) extends Literal
   private[Expr] case object NullLiteral extends Literal
 
   object Literal {
     def apply(value: true) = TrueLiteral
     def apply(value: false) = FalseLiteral
     def apply(value: String) = StringLiteral(value)
-    def apply(value: Int) = IntLiteral(value)
+    def apply(value: Double) = DoubleLiteral(value)
     def apply(value: Null) = NullLiteral
   }
 
@@ -64,7 +64,8 @@ object Expr {
       operator.tokenType match {
         case TokenType.PLUS =>
           (leftExprEvaluated, rightExprEvaluated) match {
-            case (leftInt: Int, rightInt: Int)       => leftInt + rightInt
+            case (leftDouble: Double, rightDouble: Double) =>
+              leftDouble + rightDouble
             case (leftStr: String, rightStr: String) => leftStr + rightStr
             case _ =>
               throw RuntimeError(
@@ -74,7 +75,8 @@ object Expr {
           }
         case TokenType.MINUS =>
           (leftExprEvaluated, rightExprEvaluated) match {
-            case (leftInt: Int, rightInt: Int) => leftInt - rightInt
+            case (leftDouble: Double, rightDouble: Double) =>
+              leftDouble - rightDouble
             case _ =>
               throw RuntimeError(
                 operator,
@@ -83,7 +85,8 @@ object Expr {
           }
         case TokenType.STAR =>
           (leftExprEvaluated, rightExprEvaluated) match {
-            case (leftInt: Int, rightInt: Int) => leftInt * rightInt
+            case (leftDouble: Double, rightDouble: Double) =>
+              leftDouble * rightDouble
             case _ =>
               throw RuntimeError(
                 operator,
@@ -92,8 +95,9 @@ object Expr {
           }
         case TokenType.SLASH =>
           (leftExprEvaluated, rightExprEvaluated) match {
-            case (leftInt: Int, rightInt: Int) if rightInt != 0 =>
-              leftInt / rightInt
+            case (leftDouble: Double, rightDouble: Double)
+                if rightDouble != 0 =>
+              leftDouble / rightDouble
             case (_, 0) => RuntimeError(operator, "Cannot divide by 0")
             case _ =>
               throw RuntimeError(
@@ -103,8 +107,8 @@ object Expr {
           }
         case TokenType.GREATER =>
           (leftExprEvaluated, rightExprEvaluated) match {
-            case (leftInt: Int, rightInt: Int) =>
-              leftInt > rightInt
+            case (leftDouble: Double, rightDouble: Double) =>
+              leftDouble > rightDouble
             case _ =>
               throw RuntimeError(
                 operator,
@@ -113,8 +117,8 @@ object Expr {
           }
         case TokenType.GREATER_EQUAL =>
           (leftExprEvaluated, rightExprEvaluated) match {
-            case (leftInt: Int, rightInt: Int) =>
-              leftInt >= rightInt
+            case (leftDouble: Double, rightDouble: Double) =>
+              leftDouble >= rightDouble
             case _ =>
               throw RuntimeError(
                 operator,
@@ -123,8 +127,8 @@ object Expr {
           }
         case TokenType.LESS =>
           (leftExprEvaluated, rightExprEvaluated) match {
-            case (leftInt: Int, rightInt: Int) =>
-              leftInt < rightInt
+            case (leftDouble: Double, rightDouble: Double) =>
+              leftDouble < rightDouble
             case _ =>
               throw RuntimeError(
                 operator,
@@ -133,8 +137,8 @@ object Expr {
           }
         case TokenType.LESS_EQUAL =>
           (leftExprEvaluated, rightExprEvaluated) match {
-            case (leftInt: Int, rightInt: Int) =>
-              leftInt <= rightInt
+            case (leftDouble: Double, rightDouble: Double) =>
+              leftDouble <= rightDouble
             case _ =>
               throw RuntimeError(
                 operator,
@@ -164,7 +168,7 @@ object Expr {
       case TrueLiteral           => s"( Literal: true )"
       case FalseLiteral          => s"( Literal: false )"
       case StringLiteral(value)  => s"( Literal: $value )"
-      case IntLiteral(value)     => s"( Literal: $value )"
+      case DoubleLiteral(value)  => s"( Literal: $value )"
       case NullLiteral           => s"( Null Literal )"
       case Unary(operator, expr) => s"( Unary: $operator ${expr.print} )"
       case Binary(left, op, right) =>
@@ -179,7 +183,7 @@ object Expr {
       case TrueLiteral          => true
       case FalseLiteral         => false
       case StringLiteral(value) => value
-      case IntLiteral(value)    => value
+      case DoubleLiteral(value) => value
       case NullLiteral          => None
       case unary: Unary         => unary.evaluateUnary
       case binary: Binary       => binary.evaluateBinary

@@ -146,7 +146,7 @@ class Parser(
         case TokenType.NUMBER =>
           advance()
           previous.literal match
-            case i: Int => Expr.Literal(i)
+            case i: Double => Expr.Literal(i)
             case other =>
               throw error(previous, s"Expected Number but got $other")
 

@@ -6,6 +6,9 @@ import tokens.{Token, TokenType}
 import parser.{Parser, RuntimeError}
 import runtime.Interpreter
 
+import org.jline.reader.{LineReader, LineReaderBuilder}
+import org.jline.terminal.TerminalBuilder
+
 object LoxApp {
   private var hadError: Boolean = false
   private var hadRuntimeError: Boolean = false
@@ -33,13 +36,23 @@ object LoxApp {
   }
 
   def runPrompt(): Unit = {
+    val terminal = TerminalBuilder
+      .builder()
+      .system(true) // Use system terminal
+      .build()
+
+    val reader: LineReader = LineReaderBuilder
+      .builder()
+      .terminal(terminal)
+      .build()
+
     while (true) {
-      print("> ")
-      val line = readLine()
+      val line = reader.readLine("> ")
       line match {
-        case null => return
-        case ""   => ()
-        case _    => run(line)
+        case null   => return
+        case "exit" => return
+        case ""     => ()
+        case _      => run(line)
       }
       hadError = false
     }

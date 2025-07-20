@@ -151,7 +151,7 @@ class Scanner(source: String) {
 
     addToken(
       TokenType.NUMBER,
-      source.substring(start, current).toInt
+      source.substring(start, current).toDouble
     )
   }
 
