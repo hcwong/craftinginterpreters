@@ -3,8 +3,5 @@ Multi
 Line
 Comment
 */
-123 OR "A String"
-*
 // Single line comment
-AND OR
-my variable name
+"123" + " abc"

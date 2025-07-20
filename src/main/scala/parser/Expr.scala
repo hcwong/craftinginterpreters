@@ -67,6 +67,11 @@ object Expr {
             case (leftDouble: Double, rightDouble: Double) =>
               leftDouble + rightDouble
             case (leftStr: String, rightStr: String) => leftStr + rightStr
+            // Allow addition of String to Double and always return String
+            case (leftStr: String, rightDouble: Double) =>
+              leftStr + rightDouble.toString
+            case (leftDouble: Double, rightString: String) =>
+              leftDouble.toString + rightString
             case _ =>
               throw RuntimeError(
                 operator,
