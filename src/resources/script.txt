@@ -4,4 +4,7 @@ Line
 Comment
 */
 // Single line comment
-"123" + " abc"
+print "one";
+123 + "abc";
+print true;
+print 2 + 1;

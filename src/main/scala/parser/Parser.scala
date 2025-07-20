@@ -3,6 +3,8 @@ package parser
 import tokens.{Token, TokenType}
 import LoxApp.LoxApp
 
+import scala.collection.mutable
+
 /** This app contains the recursive descent logic that translates the list of
   * tokens into expressions to operate on Each rule only matches expressions at
   * its precedence level or higher. Remember that expressions with higher
@@ -19,12 +21,23 @@ class Parser(
     private var current: Int = 0
 ) {
 
-  def parse: Option[Expr] = {
-    try Some(expression)
-    catch case _: ParseException => None
+  def parse: Seq[Statement] = {
+    val statements = mutable.Buffer[Option[Statement]]()
+    while (!isAtEnd) {
+      val statementOpt =
+        try {
+          Some(statement)
+        } catch { case _: ParseException => None }
+      statements.append(statementOpt)
+    }
+    statements.toSeq.flatten
   }
 
   // The complete grammar is as follows expression -> ternary
+  // program -> statement* EOF
+  // statement -> exprstatement | printstatement
+  // exprstatement -> expr ;
+  // printstatement -> print expr ;
   // ternary -> equality ('?' expr ':' expr)*
   // equality -> comparison ( '!=' | '==' comparison )*
   // comparison -> term ('>=' | '<=' | '>' | '<' term)*
@@ -36,6 +49,18 @@ class Parser(
   // Note that we are careful to avoid left recursion, and in no part of the
   // grammar do we call the same rule as the first term. Else we would stack
   // overflow.
+
+  private def statement: Statement = {
+    if (checkAndAdvance(Seq(TokenType.PRINT))) {
+      val expr = expression
+      consume(TokenType.SEMICOLON, "Expected ; after print statement")
+      Statement.PrintStatement(expr)
+    } else {
+      val expr = expression
+      consume(TokenType.SEMICOLON, "Expected ; after expression statement")
+      Statement.ExprStatement(expr)
+    }
+  }
 
   private def expression: Expr = ternaryOperator
 

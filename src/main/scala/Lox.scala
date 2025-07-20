@@ -1,6 +1,5 @@
 package LoxApp
 
-import scala.io.StdIn.readLine
 import scanner.Scanner
 import tokens.{Token, TokenType}
 import parser.{Parser, RuntimeError}
@@ -61,12 +60,12 @@ object LoxApp {
   private def run(source: String): Unit = {
     val tokens = Scanner(source).scanTokens().toSeq
     val parser = Parser(tokens = tokens)
-    val exprOpt = parser.parse
+    val statements = parser.parse
 
     if (hadError) {
       ()
     } else {
-      exprOpt.foreach(expr => Interpreter.interpret(expr))
+      statements.foreach(expr => Interpreter.interpret(expr))
       ()
     }
   }
