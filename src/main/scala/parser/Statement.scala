@@ -1,18 +1,24 @@
 package parser
 
+import tokens.Token
+
 sealed trait Statement
+case class VariableDeclaration(identifier: Token, exprOpt: Option[Expr])
+    extends Statement
 
 object Statement {
+
   // Print statements aren't usually part of the compiler, implemented by libs
   case class PrintStatement(expr: Expr) extends Statement
   case class ExprStatement(expr: Expr) extends Statement
 
-  extension (statement: Statement) {
+  extension (declaration: Statement) {
     def execute(): Unit = {
-      statement match {
+      declaration match {
         case PrintStatement(expr) =>
           println(expr.evaluate)
-        case ExprStatement(expr) => expr.evaluate
+        case ExprStatement(expr)       => expr.evaluate
+        case VariableDeclaration(_, _) => ???
       }
       ()
     }

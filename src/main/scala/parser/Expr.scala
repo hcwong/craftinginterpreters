@@ -13,6 +13,7 @@ object Expr {
   private[Expr] case class StringLiteral(value: String) extends Literal
   private[Expr] case class DoubleLiteral(value: Double) extends Literal
   private[Expr] case object NullLiteral extends Literal
+  case class Variable(variableName: String) extends Literal
 
   object Literal {
     def apply(value: true) = TrueLiteral
@@ -175,6 +176,7 @@ object Expr {
       case StringLiteral(value)  => s"( Literal: $value )"
       case DoubleLiteral(value)  => s"( Literal: $value )"
       case NullLiteral           => s"( Null Literal )"
+      case Variable(name)        => s"( Variable: $name )"
       case Unary(operator, expr) => s"( Unary: $operator ${expr.print} )"
       case Binary(left, op, right) =>
         s"( Binary: ${left.print}, $op, ${right.print} )"
@@ -190,6 +192,7 @@ object Expr {
       case StringLiteral(value) => value
       case DoubleLiteral(value) => value
       case NullLiteral          => None
+      case Variable(_)          => ???
       case unary: Unary         => unary.evaluateUnary
       case binary: Binary       => binary.evaluateBinary
       case Ternary(condition, positive, negative) =>

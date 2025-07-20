@@ -26,14 +26,16 @@ class Parser(
     var hasParseError: Boolean = false
     while (!isAtEnd) {
       try {
-        statements.append(statement)
+        statements.append(declaration)
       } catch { case _: ParseException => hasParseError = true }
     }
     if !hasParseError then statements.toSeq else Seq.empty
   }
 
   // The complete grammar is as follows expression -> ternary
-  // program -> statement* EOF
+  // program -> declaration * EOF
+  // declaration -> variabledeclaration | statement
+  // variabledeclaration -> 'var' IDENTIFIER (= expr)? ;
   // statement -> exprstatement | printstatement
   // exprstatement -> expr ;
   // printstatement -> print expr ;
@@ -43,11 +45,28 @@ class Parser(
   // term -> factor ( '+' | '-' factor)* factors are higher precedence than term due to BODMAS
   // factor -> unary ('*' | '/' unary)*
   // unary -> ('-' | '!' unary)* | primary
-  // primary -> boolean | number | string | null | parentheses expression (expr)
+  // primary -> boolean | number | string | null | parentheses expression (expr) | IDENTIFIER
   //
   // Note that we are careful to avoid left recursion, and in no part of the
   // grammar do we call the same rule as the first term. Else we would stack
   // overflow.
+
+  private val declaration: Statement = {
+    if (checkAndAdvance(Seq(TokenType.VAR))) {
+      val identifier = consume(
+        TokenType.IDENTIFIER,
+        "Expected variable name after var keyword"
+      )
+      if (checkAndAdvance(Seq(TokenType.EQUAL))) {
+        val expr = expression
+        VariableDeclaration(identifier, Some(expr))
+      } else {
+        VariableDeclaration(identifier, None)
+      }
+    } else {
+      statement
+    }
+  }
 
   private def statement: Statement = {
     if (checkAndAdvance(Seq(TokenType.PRINT))) {
@@ -179,6 +198,16 @@ class Parser(
           val expr = expression
           consume(TokenType.RIGHT_PAREN, "Expected ')' after expression")
           Expr.Grouping(expr)
+
+        case TokenType.IDENTIFIER =>
+          advance()
+          previous.literal match
+            case str: String => Expr.Variable(str)
+            case _ =>
+              throw error(
+                previous,
+                s"Expected string as variable name but encountered ${previous.literal}"
+              )
 
         case _ =>
           throw error(peek, "Expected expression")

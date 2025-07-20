@@ -162,7 +162,8 @@ class Scanner(source: String) {
     maybeKeyword match {
       case Some(tokenType) => addToken(tokenType)
       // User defined identifier
-      case None => addToken(TokenType.IDENTIFIER)
+      case None =>
+        addToken(TokenType.IDENTIFIER, source.substring(start, current))
     }
   }
 
