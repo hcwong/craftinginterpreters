@@ -22,15 +22,14 @@ class Parser(
 ) {
 
   def parse: Seq[Statement] = {
-    val statements = mutable.Buffer[Option[Statement]]()
+    val statements = mutable.Buffer[Statement]()
+    var hasParseError: Boolean = false
     while (!isAtEnd) {
-      val statementOpt =
-        try {
-          Some(statement)
-        } catch { case _: ParseException => None }
-      statements.append(statementOpt)
+      try {
+        statements.append(statement)
+      } catch { case _: ParseException => hasParseError = true }
     }
-    statements.toSeq.flatten
+    if !hasParseError then statements.toSeq else Seq.empty
   }
 
   // The complete grammar is as follows expression -> ternary
