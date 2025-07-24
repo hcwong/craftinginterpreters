@@ -6,8 +6,7 @@ import LoxApp.LoxApp
 class Interpreter(private val environment: Environment = Environment()) {
   def interpret(statement: Statement): Unit =
     try {
-      given Environment = environment
-      statement.execute()
+      statement.execute(environment)
     } catch {
       case e: RuntimeError => LoxApp.runtimeError(e)
       case _               => // let it pass

@@ -23,23 +23,21 @@ class Parser(
 ) {
 
   def parse: Seq[Statement] = {
-    val statements = mutable.Buffer[Statement]()
-    var hasParseError: Boolean = false
+    val statements = mutable.Buffer[Option[Statement]]()
     while (!isAtEnd) {
-      try {
-        statements.append(declaration)
-      } catch { case _: ParseException => hasParseError = true }
+      statements.append(declaration)
     }
-    if !hasParseError then statements.toSeq else Seq.empty
+    statements.flatten.toSeq
   }
 
   // The complete grammar is as follows expression -> ternary
   // program -> declaration * EOF
-  // declaration -> variabledeclaration | statement
+  // declaration -> variabledeclaration | statement | block statement
   // variabledeclaration -> 'var' IDENTIFIER (= expr)? ;
   // statement -> exprstatement | printstatement
   // exprstatement -> expr ;
   // printstatement -> print expr ;
+  // block statement -> '{' (declaration)* '}'
   // expr -> assignment
   // assignment -> IDENTIFIER '=' assignment | ternary   (doesn't this grammar allow for multiple assignment statements to be chained? Not wrong I guess)
   // ternary -> equality ('?' expr ':' expr)*
@@ -54,21 +52,27 @@ class Parser(
   // grammar do we call the same rule as the first term. Else we would stack
   // overflow.
 
-  private def declaration: Statement = {
-    if (checkAndAdvance(Seq(TokenType.VAR))) {
-      val identifier = consume(
-        TokenType.IDENTIFIER,
-        "Expected variable name after var keyword"
-      )
-      val expr = if (checkAndAdvance(Seq(TokenType.EQUAL))) {
-        Some(expression)
+  private def declaration: Option[Statement] = {
+    try {
+      if (checkAndAdvance(Seq(TokenType.VAR))) {
+        val identifier = consume(
+          TokenType.IDENTIFIER,
+          "Expected variable name after var keyword"
+        )
+        val expr = if (checkAndAdvance(Seq(TokenType.EQUAL))) {
+          Some(expression)
+        } else {
+          None
+        }
+        consume(TokenType.SEMICOLON, "Expected ; after variable declaration")
+        Some(VariableDeclaration(identifier, expr))
       } else {
-        None
+        Some(statement)
       }
-      consume(TokenType.SEMICOLON, "Expected ; after variable declaration")
-      VariableDeclaration(identifier, expr)
-    } else {
-      statement
+    } catch {
+      case _: ParseException =>
+        synchronize()
+        None
     }
   }
 
@@ -77,6 +81,15 @@ class Parser(
       val expr = expression
       consume(TokenType.SEMICOLON, "Expected ; after print statement")
       Statement.PrintStatement(expr)
+    } else if (checkAndAdvance(Seq(TokenType.LEFT_BRACE))) {
+      val blockStatements = mutable.ArrayBuffer[Option[Statement]]()
+
+      while (!isAtEnd && !checkType(TokenType.RIGHT_BRACE)) {
+        blockStatements.append(declaration)
+      }
+
+      consume(TokenType.RIGHT_BRACE, "Expected } after block")
+      Statement.BlockStatement(blockStatements.flatten.toSeq)
     } else {
       val expr = expression
       consume(TokenType.SEMICOLON, "Expected ; after expression statement")
@@ -236,7 +249,7 @@ class Parser(
 
         case _ =>
           advance()
-          throw error(peek, "Expected expression")
+          throw error(peek, s"Expected expression")
       }
 
   private def checkAndAdvance(tokenTypes: Seq[TokenType]): Boolean =
