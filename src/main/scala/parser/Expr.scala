@@ -164,9 +164,14 @@ object Expr {
 
   case class Ternary(condition: Expr, positive: Expr, negative: Expr)
       extends Expr
+
   // Some parsers don't use separate Exprs for Parentheses, but Lox uses it to accurately
   // evaluate LHS of assignment expressions
+  // Take this for example a = 1 is valid but (a) is not valid
+  // In this case, preserving the parentheses aids the accuracy of the interpreter
   case class Grouping(expr: Expr) extends Expr
+
+  case class Assignment(identifierToken: Token, expr: Expr) extends Expr
 
   // TODO: Use Scala 3 typeclasses to implement implicit resolution
   extension (expr: Expr) {
@@ -183,6 +188,8 @@ object Expr {
       case Ternary(condition, positive, negative) =>
         s"( Ternary: (${condition.print} ? ${positive.print} : ${negative.print}) )"
       case Grouping(expr) => s"( Grouping: ${expr.print} )"
+      case Assignment(identifierToken, expr) =>
+        s"( Assignment of ${identifierToken.lexeme} to expression ${expr.print} )"
     }
 
     // Fun idea: Try to make it somehow more typed? No to dynamically typed languages
@@ -199,6 +206,8 @@ object Expr {
         if (isTruthy(condition.evaluate)) { positive.evaluate }
         else { negative.evaluate }
       case Grouping(expr) => expr.evaluate
+      case Assignment(identifierToken, expr) =>
+        environment.assign(identifierToken, expr.evaluate)
     }
   }
 }

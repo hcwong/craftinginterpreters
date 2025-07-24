@@ -2,6 +2,7 @@ package parser
 
 import tokens.{Token, TokenType}
 import LoxApp.LoxApp
+import parser.Expr.{Assignment, Variable}
 
 import scala.collection.mutable
 
@@ -29,7 +30,6 @@ class Parser(
         statements.append(declaration)
       } catch { case _: ParseException => hasParseError = true }
     }
-    println(statements)
     if !hasParseError then statements.toSeq else Seq.empty
   }
 
@@ -40,6 +40,8 @@ class Parser(
   // statement -> exprstatement | printstatement
   // exprstatement -> expr ;
   // printstatement -> print expr ;
+  // expr -> assignment
+  // assignment -> IDENTIFIER '=' assignment | ternary   (doesn't this grammar allow for multiple assignment statements to be chained? Not wrong I guess)
   // ternary -> equality ('?' expr ':' expr)*
   // equality -> comparison ( '!=' | '==' comparison )*
   // comparison -> term ('>=' | '<=' | '>' | '<' term)*
@@ -82,7 +84,28 @@ class Parser(
     }
   }
 
-  private def expression: Expr = ternaryOperator
+  private def expression: Expr = assignment
+
+  private def assignment: Expr = {
+    // Cannot be assignment here else we will recurse all the way down
+    // perks of left recursive descent parser
+    val expr = ternaryOperator
+
+    if (checkAndAdvance(Seq(TokenType.EQUAL))) {
+      val equalityToken = previous
+      val assignmentExpr = assignment
+
+      expr match {
+        case Variable(identifierToken) =>
+          Assignment(identifierToken, assignmentExpr)
+        case _ =>
+          error(equalityToken, s"Invalid assignment target: ${expr.print}")
+          expr
+      }
+    } else {
+      expr
+    }
+  }
 
   private def ternaryOperator: Expr = {
     var expr: Expr = equality

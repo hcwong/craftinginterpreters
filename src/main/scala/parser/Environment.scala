@@ -18,4 +18,15 @@ class Environment(
           s"Undefined variable ${variableToken.lexeme}."
         )
     }
+
+  def assign(variableToken: Token, value: Any): Any =
+    if (variableMap.contains(variableToken.lexeme)) {
+      define(variableToken.lexeme, value)
+      value
+    } else {
+      throw RuntimeError(
+        variableToken,
+        s"Unable to assign to undeclared variable ${variableToken.lexeme}"
+      )
+    }
 }

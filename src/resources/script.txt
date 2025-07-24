@@ -11,3 +11,7 @@ print 2 + 1;
 var a = 2;
 var b = 2;
 print a + b;
+a = 3;
+b = 4;
+print a + b;
+c = 3;

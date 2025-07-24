@@ -84,7 +84,7 @@ object LoxApp {
   }
 
   def runtimeError(error: RuntimeError): Unit = {
-    System.err.println(s"${error.message}\n[line: ${error.token.line}]")
+    System.err.println(s"[line: ${error.token.line}]: ${error.message}")
     hadRuntimeError = true
   }
 
