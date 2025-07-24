@@ -12,13 +12,17 @@ object Statement {
   case class PrintStatement(expr: Expr) extends Statement
   case class ExprStatement(expr: Expr) extends Statement
 
-  extension (declaration: Statement) {
+  extension (declaration: Statement)(using environment: Environment) {
     def execute(): Unit = {
       declaration match {
         case PrintStatement(expr) =>
           println(expr.evaluate)
-        case ExprStatement(expr)       => expr.evaluate
-        case VariableDeclaration(_, _) => ???
+        case ExprStatement(expr) => expr.evaluate
+        case VariableDeclaration(identifier, exprOpt) =>
+          val value = exprOpt
+            .map(expr => expr.evaluate)
+            .getOrElse(None)
+          environment.define(identifier.lexeme, value)
       }
       ()
     }

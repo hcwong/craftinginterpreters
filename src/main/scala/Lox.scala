@@ -61,11 +61,12 @@ object LoxApp {
     val tokens = Scanner(source).scanTokens().toSeq
     val parser = Parser(tokens = tokens)
     val statements = parser.parse
+    val interpreter = Interpreter()
 
     if (hadError) {
       ()
     } else {
-      statements.foreach(expr => Interpreter.interpret(expr))
+      statements.foreach(expr => interpreter.interpret(expr))
       ()
     }
   }

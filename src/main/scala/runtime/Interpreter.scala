@@ -1,11 +1,12 @@
 package runtime
 
-import parser.{Statement, RuntimeError}
+import parser.{Environment, RuntimeError, Statement}
 import LoxApp.LoxApp
 
-object Interpreter {
+class Interpreter(private val environment: Environment = Environment()) {
   def interpret(statement: Statement): Unit =
     try {
+      given Environment = environment
       statement.execute()
     } catch {
       case e: RuntimeError => LoxApp.runtimeError(e)

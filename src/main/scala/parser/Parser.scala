@@ -29,6 +29,7 @@ class Parser(
         statements.append(declaration)
       } catch { case _: ParseException => hasParseError = true }
     }
+    println(statements)
     if !hasParseError then statements.toSeq else Seq.empty
   }
 
@@ -51,18 +52,19 @@ class Parser(
   // grammar do we call the same rule as the first term. Else we would stack
   // overflow.
 
-  private val declaration: Statement = {
+  private def declaration: Statement = {
     if (checkAndAdvance(Seq(TokenType.VAR))) {
       val identifier = consume(
         TokenType.IDENTIFIER,
         "Expected variable name after var keyword"
       )
-      if (checkAndAdvance(Seq(TokenType.EQUAL))) {
-        val expr = expression
-        VariableDeclaration(identifier, Some(expr))
+      val expr = if (checkAndAdvance(Seq(TokenType.EQUAL))) {
+        Some(expression)
       } else {
-        VariableDeclaration(identifier, None)
+        None
       }
+      consume(TokenType.SEMICOLON, "Expected ; after variable declaration")
+      VariableDeclaration(identifier, expr)
     } else {
       statement
     }
@@ -202,7 +204,7 @@ class Parser(
         case TokenType.IDENTIFIER =>
           advance()
           previous.literal match
-            case str: String => Expr.Variable(str)
+            case str: String => Expr.Variable(previous)
             case _ =>
               throw error(
                 previous,
@@ -210,6 +212,7 @@ class Parser(
               )
 
         case _ =>
+          advance()
           throw error(peek, "Expected expression")
       }
 

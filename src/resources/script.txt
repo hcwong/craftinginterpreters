@@ -8,3 +8,6 @@ print "one";
 123 + "abc";
 print true;
 print 2 + 1;
+var a = 2;
+var b = 2;
+print a + b;

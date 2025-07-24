@@ -13,7 +13,7 @@ object Expr {
   private[Expr] case class StringLiteral(value: String) extends Literal
   private[Expr] case class DoubleLiteral(value: Double) extends Literal
   private[Expr] case object NullLiteral extends Literal
-  case class Variable(variableName: String) extends Literal
+  case class Variable(variableToken: Token) extends Literal
 
   object Literal {
     def apply(value: true) = TrueLiteral
@@ -33,7 +33,7 @@ object Expr {
 
   // TODO: Narrow down the type of operator. Not all tokens are operators
   case class Unary(operator: Token, expr: Expr) extends Expr {
-    def evaluateUnary: Any = {
+    def evaluateUnary(using environment: Environment) = {
       val exprEvaluated = expr.evaluate
 
       operator.tokenType match {
@@ -58,7 +58,7 @@ object Expr {
 
   case class Binary(leftExpr: Expr, operator: Token, rightExpr: Expr)
       extends Expr {
-    def evaluateBinary: Any = {
+    def evaluateBinary(using environment: Environment) = {
       val leftExprEvaluated = leftExpr.evaluate
       val rightExprEvaluated = rightExpr.evaluate
 
@@ -171,13 +171,13 @@ object Expr {
   // TODO: Use Scala 3 typeclasses to implement implicit resolution
   extension (expr: Expr) {
     def print: String = expr match {
-      case TrueLiteral           => s"( Literal: true )"
-      case FalseLiteral          => s"( Literal: false )"
-      case StringLiteral(value)  => s"( Literal: $value )"
-      case DoubleLiteral(value)  => s"( Literal: $value )"
-      case NullLiteral           => s"( Null Literal )"
-      case Variable(name)        => s"( Variable: $name )"
-      case Unary(operator, expr) => s"( Unary: $operator ${expr.print} )"
+      case TrueLiteral             => s"( Literal: true )"
+      case FalseLiteral            => s"( Literal: false )"
+      case StringLiteral(value)    => s"( Literal: $value )"
+      case DoubleLiteral(value)    => s"( Literal: $value )"
+      case NullLiteral             => s"( Null Literal )"
+      case Variable(variableToken) => s"( Variable: ${variableToken.lexeme} )"
+      case Unary(operator, expr)   => s"( Unary: $operator ${expr.print} )"
       case Binary(left, op, right) =>
         s"( Binary: ${left.print}, $op, ${right.print} )"
       case Ternary(condition, positive, negative) =>
@@ -186,15 +186,15 @@ object Expr {
     }
 
     // Fun idea: Try to make it somehow more typed? No to dynamically typed languages
-    def evaluate: Any = expr match {
-      case TrueLiteral          => true
-      case FalseLiteral         => false
-      case StringLiteral(value) => value
-      case DoubleLiteral(value) => value
-      case NullLiteral          => None
-      case Variable(_)          => ???
-      case unary: Unary         => unary.evaluateUnary
-      case binary: Binary       => binary.evaluateBinary
+    def evaluate(using environment: Environment): Any = expr match {
+      case TrueLiteral             => true
+      case FalseLiteral            => false
+      case StringLiteral(value)    => value
+      case DoubleLiteral(value)    => value
+      case NullLiteral             => None
+      case Variable(variableToken) => environment.get(variableToken)
+      case unary: Unary            => unary.evaluateUnary
+      case binary: Binary          => binary.evaluateBinary
       case Ternary(condition, positive, negative) =>
         if (isTruthy(condition.evaluate)) { positive.evaluate }
         else { negative.evaluate }
