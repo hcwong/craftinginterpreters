@@ -11,6 +11,8 @@ import org.jline.terminal.TerminalBuilder
 object LoxApp {
   private var hadError: Boolean = false
   private var hadRuntimeError: Boolean = false
+  // Move Interpreter to top level scope so that it keeps state for REPL mode
+  private val interpreter = Interpreter()
 
   def main(args: Array[String]): Unit = {
     val argLen = args.length
@@ -61,7 +63,6 @@ object LoxApp {
     val tokens = Scanner(source).scanTokens().toSeq
     val parser = Parser(tokens = tokens)
     val statements = parser.parse
-    val interpreter = Interpreter()
 
     if (hadError) {
       ()

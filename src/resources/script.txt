@@ -19,6 +19,7 @@ c = 3;
   var a = 5;
   print a;
   var d = 3;
+  d = a = 7
   print a + d;
   {
     var d = 5;
