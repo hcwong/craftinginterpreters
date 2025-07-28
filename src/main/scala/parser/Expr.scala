@@ -23,7 +23,7 @@ object Expr {
     def apply(value: Null) = NullLiteral
   }
 
-  private def isTruthy(obj: Any): Boolean = {
+  def isTruthy(obj: Any): Boolean = {
     obj match {
       case bool: Boolean => bool
       case None          => false
@@ -151,8 +151,8 @@ object Expr {
                 s"'<=' cannot be used to check if $leftExprEvaluated <= $rightExprEvaluated"
               )
           }
-        case TokenType.BANG_EQUAL => leftExprEvaluated != rightExprEvaluated
-        case TokenType.EQUAL      => leftExprEvaluated == rightExprEvaluated
+        case TokenType.BANG_EQUAL  => leftExprEvaluated != rightExprEvaluated
+        case TokenType.EQUAL_EQUAL => leftExprEvaluated == rightExprEvaluated
         case _ =>
           throw RuntimeError(
             operator,

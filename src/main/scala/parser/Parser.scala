@@ -34,9 +34,10 @@ class Parser(
   // program -> declaration * EOF
   // declaration -> variabledeclaration | statement | block statement
   // variabledeclaration -> 'var' IDENTIFIER (= expr)? ;
-  // statement -> exprstatement | printstatement
+  // statement -> exprstatement | ifstatement |  printstatement
   // exprstatement -> expr ;
   // printstatement -> print expr ;
+  // “ifStmt         → "if" "(" expression ")" statement ( "else" statement )?
   // block statement -> '{' (declaration)* '}'
   // expr -> assignment
   // assignment -> IDENTIFIER '=' assignment | ternary   (doesn't this grammar allow for multiple assignment statements to be chained? Not wrong I guess)
@@ -81,6 +82,15 @@ class Parser(
       val expr = expression
       consume(TokenType.SEMICOLON, "Expected ; after print statement")
       Statement.PrintStatement(expr)
+    } else if (checkAndAdvance(Seq(TokenType.IF))) {
+      consume(TokenType.LEFT_PAREN, "Expected ( after if keyword")
+      val conditional = expression
+      consume(TokenType.RIGHT_PAREN, "Expected ) after if condition")
+      val ifClause = expression
+      val elseClause = if (checkAndAdvance(Seq(TokenType.ELSE))) {
+        Some(expression)
+      } else None
+      Statement.IfStatement(conditional, ifClause, elseClause)
     } else if (checkAndAdvance(Seq(TokenType.LEFT_BRACE))) {
       val blockStatements = mutable.ArrayBuffer[Option[Statement]]()
 

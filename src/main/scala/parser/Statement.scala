@@ -1,6 +1,7 @@
 package parser
 
 import tokens.Token
+import Expr.isTruthy
 
 sealed trait Statement
 case class VariableDeclaration(identifier: Token, exprOpt: Option[Expr])
@@ -12,6 +13,11 @@ object Statement {
   case class PrintStatement(expr: Expr) extends Statement
   case class ExprStatement(expr: Expr) extends Statement
   case class BlockStatement(statements: Seq[Statement]) extends Statement
+  case class IfStatement(
+      conditional: Expr,
+      ifClause: Expr,
+      elseClause: Option[Expr]
+  ) extends Statement
 
   extension (declaration: Statement) {
     def execute(environment: Environment): Unit = {
@@ -28,6 +34,10 @@ object Statement {
         case BlockStatement(statements) =>
           val blockEnv = Environment(enclosing = environment)
           statements.foreach(_.execute(environment))
+        case IfStatement(conditional, ifClause, _)
+            if isTruthy(conditional.evaluate) =>
+          ifClause.evaluate
+        case IfStatement(_, _, exprClause) => exprClause.foreach(_.evaluate)
       }
       ()
     }
