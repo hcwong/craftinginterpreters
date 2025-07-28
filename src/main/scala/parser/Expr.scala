@@ -173,6 +173,15 @@ object Expr {
 
   case class Assignment(identifierToken: Token, expr: Expr) extends Expr
 
+  enum LogicalOperator {
+    case Or, And
+  }
+  case class Logical(
+      expr: Expr,
+      operator: LogicalOperator,
+      subsequentExpr: Expr
+  ) extends Expr
+
   // TODO: Use Scala 3 typeclasses to implement implicit resolution
   extension (expr: Expr) {
     def print: String = expr match {
@@ -190,6 +199,8 @@ object Expr {
       case Grouping(expr) => s"( Grouping: ${expr.print} )"
       case Assignment(identifierToken, expr) =>
         s"( Assignment of ${identifierToken.lexeme} to expression ${expr.print} )"
+      case Logical(expr, operator, subsequentExpr) =>
+        s"( Logical: ${expr.print}, $operator.toString, ${subsequentExpr.print}"
     }
 
     // Fun idea: Try to make it somehow more typed? No to dynamically typed languages
@@ -208,6 +219,12 @@ object Expr {
       case Grouping(expr) => expr.evaluate
       case Assignment(identifierToken, expr) =>
         environment.assign(identifierToken, expr.evaluate)
+      case Logical(expr, LogicalOperator.Or, subsequentExpr) =>
+        if isTruthy(expr.evaluate) then expr.evaluate
+        else subsequentExpr.evaluate
+      case Logical(expr, LogicalOperator.And, subsequentExpr) =>
+        if !isTruthy(expr.evaluate) then expr.evaluate
+        else subsequentExpr.evaluate
     }
   }
 }

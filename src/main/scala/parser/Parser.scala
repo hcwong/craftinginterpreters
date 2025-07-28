@@ -40,7 +40,9 @@ class Parser(
   // “ifStmt         → "if" "(" expression ")" statement ( "else" statement )?
   // block statement -> '{' (declaration)* '}'
   // expr -> assignment
-  // assignment -> IDENTIFIER '=' assignment | ternary   (doesn't this grammar allow for multiple assignment statements to be chained? Not wrong I guess)
+  // assignment -> IDENTIFIER '=' assignment | logic_or   (doesn't this grammar allow for multiple assignment statements to be chained? Not wrong I guess)
+  // logic_or -> logic_and (OR logic_and )*
+  // logic_and -> ternary (AND ternary)*
   // ternary -> equality ('?' expr ':' expr)*
   // equality -> comparison ( '!=' | '==' comparison )*
   // comparison -> term ('>=' | '<=' | '>' | '<' term)*
@@ -112,7 +114,7 @@ class Parser(
   private def assignment: Expr = {
     // Cannot be assignment here else we will recurse all the way down
     // perks of left recursive descent parser
-    val expr = ternaryOperator
+    val expr = logicOr
 
     if (checkAndAdvance(Seq(TokenType.EQUAL))) {
       val equalityToken = previous
@@ -125,6 +127,26 @@ class Parser(
           error(equalityToken, s"Invalid assignment target: ${expr.print}")
           expr
       }
+    } else {
+      expr
+    }
+  }
+
+  def logicOr: Expr = {
+    val expr = logicAnd
+    if (checkAndAdvance(Seq(TokenType.OR))) {
+      val subsequentClause = logicOr
+      Expr.Logical(expr, Expr.LogicalOperator.Or, subsequentClause)
+    } else {
+      expr
+    }
+  }
+
+  def logicAnd: Expr = {
+    val expr = ternaryOperator
+    if (checkAndAdvance(Seq(TokenType.AND))) {
+      val subsequentClause = logicAnd
+      Expr.Logical(expr, Expr.LogicalOperator.And, subsequentClause)
     } else {
       expr
     }
