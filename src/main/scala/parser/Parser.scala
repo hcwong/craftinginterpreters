@@ -3,6 +3,7 @@ package parser
 import tokens.{Token, TokenType}
 import LoxApp.LoxApp
 import parser.Expr.{Assignment, Variable}
+import parser.Statement.WhileStatement
 
 import scala.collection.mutable
 
@@ -34,10 +35,14 @@ class Parser(
   // program -> declaration * EOF
   // declaration -> variabledeclaration | statement | block statement
   // variabledeclaration -> 'var' IDENTIFIER (= expr)? ;
-  // statement -> exprstatement | ifstatement |  printstatement
+  // statement -> exprstatement | ifstatement |  printstatement | if stmt | while stmt | for statement
   // exprstatement -> expr ;
   // printstatement -> print expr ;
   // “ifStmt         → "if" "(" expression ")" statement ( "else" statement )?
+  // while stmt -> while (expression) statement;
+  // for stmt -< “for" "(" ( varDecl | exprStmt | ";" )?
+  //                 expression? ";"
+  //                 expression? ")" statement ”
   // block statement -> '{' (declaration)* '}'
   // expr -> assignment
   // assignment -> IDENTIFIER '=' assignment | logic_or   (doesn't this grammar allow for multiple assignment statements to be chained? Not wrong I guess)
@@ -58,17 +63,7 @@ class Parser(
   private def declaration: Option[Statement] = {
     try {
       if (checkAndAdvance(Seq(TokenType.VAR))) {
-        val identifier = consume(
-          TokenType.IDENTIFIER,
-          "Expected variable name after var keyword"
-        )
-        val expr = if (checkAndAdvance(Seq(TokenType.EQUAL))) {
-          Some(expression)
-        } else {
-          None
-        }
-        consume(TokenType.SEMICOLON, "Expected ; after variable declaration")
-        Some(VariableDeclaration(identifier, expr))
+        Some(variableDeclaration())
       } else {
         Some(statement)
       }
@@ -77,6 +72,20 @@ class Parser(
         synchronize()
         None
     }
+  }
+
+  private def variableDeclaration(): Statement = {
+    val identifier = consume(
+      TokenType.IDENTIFIER,
+      "Expected variable name after var keyword"
+    )
+    val expr = if (checkAndAdvance(Seq(TokenType.EQUAL))) {
+      Some(expression)
+    } else {
+      None
+    }
+    consume(TokenType.SEMICOLON, "Expected ; after variable declaration")
+    VariableDeclaration(identifier, expr)
   }
 
   private def statement: Statement = {
@@ -102,11 +111,73 @@ class Parser(
 
       consume(TokenType.RIGHT_BRACE, "Expected } after block")
       Statement.BlockStatement(blockStatements.flatten.toSeq)
+    } else if (checkAndAdvance(TokenType.WHILE)) {
+      whileStatement()
+    } else if (checkAndAdvance(TokenType.FOR)) {
+      forStatement()
+    } else {
+      expressionStatement()
+    }
+  }
+
+  private def expressionStatement(): Statement = {
+    val expr = expression
+    consume(TokenType.SEMICOLON, "Expected ; after expression statement")
+    Statement.ExprStatement(expr)
+  }
+
+  private def whileStatement(): Statement = {
+    consume(TokenType.LEFT_PAREN, "Expected ( after while keyword")
+    val condition = expression
+    consume(TokenType.RIGHT_PAREN, "Expected ) after while expression")
+    Statement.WhileStatement(condition, statement)
+  }
+
+  private def forStatement(): Statement = {
+    // In Lox syntax, any of the initializer, terminating condition, or increment can be omitted
+    consume(TokenType.LEFT_PAREN, "Expected ( after for keyword")
+
+    val initializer = if (checkAndAdvance(TokenType.SEMICOLON)) {
+      None
+    } else if (checkAndAdvance(TokenType.VAR)) {
+      Some(variableDeclaration())
+    } else {
+      Some(expressionStatement())
+    }
+
+    val terminatingConditionOpt = if (checkAndAdvance(TokenType.SEMICOLON)) {
+      None
+    } else {
+      val terminatingExpr = Some(expression)
+      consume(
+        TokenType.SEMICOLON,
+        "Expected ; after for loop terminating condition"
+      )
+      terminatingExpr
+    }
+    val terminatingCondition =
+      terminatingConditionOpt.getOrElse(Expr.Literal(true))
+
+    val increment = if (checkAndAdvance(TokenType.RIGHT_PAREN)) {
+      None
     } else {
       val expr = expression
-      consume(TokenType.SEMICOLON, "Expected ; after expression statement")
-      Statement.ExprStatement(expr)
+      consume(TokenType.RIGHT_PAREN, "Expected ) after for loop conditions")
+      Some(Statement.ExprStatement(expr))
     }
+
+    val statementBody = statement
+
+    // If initializer is present, run it once before the while loop
+    // Terminating condition is already vacuously set
+    // If increment is None, just omit it and do not run it after the statementBody
+    val whileLoopBody =
+      Statement.BlockStatement(Seq(Some(statementBody), increment).flatten)
+    val whileLoop =
+      Statement.WhileStatement(terminatingCondition, whileLoopBody)
+    Statement.BlockStatement(
+      Seq(initializer, Some(whileLoop)).flatten
+    )
   }
 
   private def expression: Expr = assignment
@@ -283,6 +354,15 @@ class Parser(
           advance()
           throw error(peek, s"Expected expression")
       }
+
+  private def checkAndAdvance(tokenType: TokenType): Boolean = {
+    if (checkType(tokenType)) {
+      advance()
+      true
+    } else {
+      false
+    }
+  }
 
   private def checkAndAdvance(tokenTypes: Seq[TokenType]): Boolean =
     tokenTypes.find(checkType) match {

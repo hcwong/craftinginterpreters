@@ -18,6 +18,10 @@ object Statement {
       ifClause: Expr,
       elseClause: Option[Expr]
   ) extends Statement
+  case class WhileStatement(
+      condition: Expr,
+      statement: Statement
+  ) extends Statement
 
   extension (declaration: Statement) {
     def execute(environment: Environment): Unit = {
@@ -38,6 +42,10 @@ object Statement {
             if isTruthy(conditional.evaluate) =>
           ifClause.evaluate
         case IfStatement(_, _, exprClause) => exprClause.foreach(_.evaluate)
+        case WhileStatement(conditional, bodyStatement) =>
+          while (isTruthy(conditional.evaluate)) {
+            bodyStatement.execute(environment)
+          }
       }
       ()
     }
