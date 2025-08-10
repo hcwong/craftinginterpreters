@@ -5,6 +5,7 @@ import LoxApp.LoxApp
 import parser.Expr.{Assignment, Variable}
 import parser.Statement.WhileStatement
 
+import scala.annotation.tailrec
 import scala.collection.mutable
 
 /** This app contains the recursive descent logic that translates the list of
@@ -53,7 +54,9 @@ class Parser(
   // comparison -> term ('>=' | '<=' | '>' | '<' term)*
   // term -> factor ( '+' | '-' factor)* factors are higher precedence than term due to BODMAS
   // factor -> unary ('*' | '/' unary)*
-  // unary -> ('-' | '!' unary)* | primary
+  // unary -> ('-' | '!' unary)* | call
+  // call -> primary ( '(' arguments? ')' )*
+  // arguments -> expression ( ',' expression )*
   // primary -> boolean | number | string | null | parentheses expression (expr) | IDENTIFIER
   //
   // Note that we are careful to avoid left recursion, and in no part of the
@@ -300,7 +303,50 @@ class Parser(
       val expr = unary
       Expr.Unary(operator, expr)
     } else {
-      primary
+      call()
+    }
+  }
+
+  private def call(): Expr = {
+    val expr = primary
+
+    if (checkAndAdvance(TokenType.LEFT_PAREN)) {
+      callRec(primary, Some(mutable.ArrayBuffer.empty[Expr]))
+    } else {
+      expr
+    }
+  }
+
+  // Not the easiest to read, but challenging myself to avoid while true + break patterns
+  @tailrec
+  private def callRec(
+      expr: Expr,
+      arguments: Option[mutable.ArrayBuffer[Expr]]
+  ): Expr = {
+    arguments match {
+      case Some(args) if args.size > Parser.MAX_ARG_SIZE =>
+        throw error(
+          peek,
+          s"Can't have more than ${Parser.MAX_ARG_SIZE} arguments, friend"
+        )
+      // If arguments is a Non-none value, we are actively looking for the closing brace
+      // So we want to search for either closing brace OR expr
+      case Some(args) =>
+        if checkAndAdvance(TokenType.RIGHT_PAREN) then
+          callRec(Expr.Call(expr, previous, args.toSeq), None)
+        else {
+          // If its not a closing brace, expect a comma before the next expression
+          consume(TokenType.COMMA, "Expected , between arguments")
+          args.append(expression)
+          callRec(expr, Some(args))
+        }
+      // Now, if arguments is None, there are two cases
+      // If the next token is left paren restart the Some(args) clause again
+      // Else we hit base case and can return expr
+      case None =>
+        if checkAndAdvance(TokenType.LEFT_PAREN) then
+          callRec(expr, Some(mutable.ArrayBuffer.empty[Expr]))
+        else expr
     }
   }
 
@@ -431,6 +477,12 @@ class Parser(
 
     ()
   }
+}
+
+object Parser {
+  // Well, follow Scala 2 for simplicity. No particular reason why, but why do you need
+  // a 23 arity function?
+  private val MAX_ARG_SIZE = 22
 }
 
 private[parser] case class ParseException() extends RuntimeException

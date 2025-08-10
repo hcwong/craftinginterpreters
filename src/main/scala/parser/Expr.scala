@@ -182,6 +182,12 @@ object Expr {
       subsequentExpr: Expr
   ) extends Expr
 
+  case class Call(
+      callee: Expr,
+      closingParen: Token,
+      arguments: Seq[Expr]
+  ) extends Expr
+
   // TODO: Use Scala 3 typeclasses to implement implicit resolution
   extension (expr: Expr) {
     def print: String = expr match {
@@ -201,6 +207,8 @@ object Expr {
         s"( Assignment of ${identifierToken.lexeme} to expression ${expr.print} )"
       case Logical(expr, operator, subsequentExpr) =>
         s"( Logical: ${expr.print}, $operator.toString, ${subsequentExpr.print}"
+      case Call(callee, closingParen, arguments) =>
+        s"( Call: ${callee.print}, ${closingParen.toString} with arguments: ${arguments.map(_.print).mkString(", ")}"
     }
 
     // Fun idea: Try to make it somehow more typed? No to dynamically typed languages
@@ -225,6 +233,7 @@ object Expr {
       case Logical(expr, LogicalOperator.And, subsequentExpr) =>
         if !isTruthy(expr.evaluate) then expr.evaluate
         else subsequentExpr.evaluate
+      case Call(_, _, _) => ???
     }
   }
 }
