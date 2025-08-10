@@ -34,7 +34,10 @@ class Parser(
 
   // The complete grammar is as follows expression -> ternary
   // program -> declaration * EOF
-  // declaration -> variabledeclaration | statement | block statement
+  // declaration -> function declaration | variabledeclaration | statement | block statement
+  // function declaration -> "fun" function
+  // function -> IDENTIFIER '(' parameters? ')' block
+  // parameters -> IDENTIFIER ( ',' IDENTIFIER )*
   // variabledeclaration -> 'var' IDENTIFIER (= expr)? ;
   // statement -> exprstatement | ifstatement |  printstatement | if stmt | while stmt | for statement
   // exprstatement -> expr ;
@@ -77,6 +80,49 @@ class Parser(
     }
   }
 
+  // Kind: Could be method, function etc
+  private def functionDeclaration(kind: String): Statement = {
+    val identifier = consume(
+      TokenType.IDENTIFIER,
+      s"Expected $kind name"
+    )
+
+    consume(TokenType.LEFT_PAREN, s"Expected ( after $kind name")
+    val parameters = getFunctionParams(kind, mutable.ArrayBuffer.empty).toSeq
+
+    consume(
+      TokenType.LEFT_BRACE,
+      s"Expected { after defining parameters for $kind"
+    )
+    val functionBody = getStatementsInBlock()
+
+    Statement.FunctionDeclaration(
+      identifier,
+      parameters,
+      getStatementsInBlock()
+    )
+  }
+
+  @tailrec
+  private def getFunctionParams(
+      kind: String,
+      parameters: mutable.ArrayBuffer[Token]
+  ): mutable.ArrayBuffer[Token] = {
+    if parameters.size > Parser.MAX_ARG_SIZE then
+      throw error(
+        peek,
+        s"$kind can't have more than ${Parser.MAX_ARG_SIZE} paramters"
+      )
+    else if checkAndAdvance(TokenType.RIGHT_PAREN) then parameters
+    else {
+      consume(TokenType.COMMA, s"Expected , between $kind parameters")
+      parameters.append(
+        consume(TokenType.IDENTIFIER, s"Expected $kind parameter after comma")
+      )
+      getFunctionParams(kind, parameters)
+    }
+  }
+
   private def variableDeclaration(): Statement = {
     val identifier = consume(
       TokenType.IDENTIFIER,
@@ -88,7 +134,7 @@ class Parser(
       None
     }
     consume(TokenType.SEMICOLON, "Expected ; after variable declaration")
-    VariableDeclaration(identifier, expr)
+    Statement.VariableDeclaration(identifier, expr)
   }
 
   private def statement: Statement = {
@@ -106,14 +152,7 @@ class Parser(
       } else None
       Statement.IfStatement(conditional, ifClause, elseClause)
     } else if (checkAndAdvance(Seq(TokenType.LEFT_BRACE))) {
-      val blockStatements = mutable.ArrayBuffer[Option[Statement]]()
-
-      while (!isAtEnd && !checkType(TokenType.RIGHT_BRACE)) {
-        blockStatements.append(declaration)
-      }
-
-      consume(TokenType.RIGHT_BRACE, "Expected } after block")
-      Statement.BlockStatement(blockStatements.flatten.toSeq)
+      Statement.BlockStatement(getStatementsInBlock())
     } else if (checkAndAdvance(TokenType.WHILE)) {
       whileStatement()
     } else if (checkAndAdvance(TokenType.FOR)) {
@@ -121,6 +160,17 @@ class Parser(
     } else {
       expressionStatement()
     }
+  }
+
+  private def getStatementsInBlock(): Seq[Statement] = {
+    val blockStatements = mutable.ArrayBuffer[Option[Statement]]()
+
+    while (!isAtEnd && !checkType(TokenType.RIGHT_BRACE)) {
+      blockStatements.append(declaration)
+    }
+
+    consume(TokenType.RIGHT_BRACE, "Expected } after block")
+    blockStatements.flatten.toSeq
   }
 
   private def expressionStatement(): Statement = {

@@ -5,13 +5,13 @@ import tokens.Token
 
 trait LoxCallable {
   protected val arity: Int
-  protected val closingParen: Token
 
   def call(interpreter: Interpreter, arguments: Seq[Any]): Any
 
   private def validateArityAndCall(
       interpreter: Interpreter,
-      arguments: Seq[Any]
+      arguments: Seq[Any],
+      closingParen: Token
   ): Any = {
     if (arity != arguments.size) {
       throw RuntimeError(

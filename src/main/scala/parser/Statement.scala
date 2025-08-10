@@ -4,11 +4,10 @@ import tokens.Token
 import Expr.isTruthy
 
 sealed trait Statement
-case class VariableDeclaration(identifier: Token, exprOpt: Option[Expr])
-    extends Statement
 
 object Statement {
-
+  case class VariableDeclaration(identifier: Token, exprOpt: Option[Expr])
+      extends Statement
   // Print statements aren't usually part of the compiler, implemented by libs
   case class PrintStatement(expr: Expr) extends Statement
   case class ExprStatement(expr: Expr) extends Statement
@@ -21,6 +20,12 @@ object Statement {
   case class WhileStatement(
       condition: Expr,
       statement: Statement
+  ) extends Statement
+
+  case class FunctionDeclaration(
+      name: Token,
+      parameters: Seq[Token],
+      body: Seq[Statement]
   ) extends Statement
 
   extension (declaration: Statement) {
@@ -46,6 +51,7 @@ object Statement {
           while (isTruthy(conditional.evaluate)) {
             bodyStatement.execute(environment)
           }
+        case FunctionDeclaration(_, _, _) => ???
       }
       ()
     }

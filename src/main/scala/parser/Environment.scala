@@ -1,5 +1,6 @@
 package parser
 
+import runtime.{Interpreter, LoxCallable}
 import tokens.Token
 
 class Environment(
@@ -39,7 +40,21 @@ class Environment(
 }
 
 object Environment {
-  def apply(): Environment = new Environment()
+  final val global: Environment = {
+    val _global = Environment()
+    _global.define(
+      "clock",
+      new LoxCallable {
+        override protected val arity: Int = 0
+
+        override def call(interpreter: Interpreter, arguments: Seq[Any]): Any =
+          System.currentTimeMillis().toDouble / 1000.0
+      }
+    )
+    _global
+  }
+
+  private def apply(): Environment = new Environment()
 
   def apply(enclosing: Environment) =
     new Environment(enclosing = Some(enclosing))
