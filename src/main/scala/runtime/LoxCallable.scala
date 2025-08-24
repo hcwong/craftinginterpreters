@@ -6,10 +6,9 @@ import tokens.Token
 trait LoxCallable {
   protected val arity: Int
 
-  def call(interpreter: Interpreter, arguments: Seq[Any]): Any
+  def call(arguments: Seq[Any]): Any
 
   private def validateArityAndCall(
-      interpreter: Interpreter,
       arguments: Seq[Any],
       closingParen: Token
   ): Any = {
@@ -19,7 +18,7 @@ trait LoxCallable {
         s"Expected $arity parameters but received ${arguments.size} arguments"
       )
     } else {
-      call(interpreter, arguments)
+      call(arguments)
     }
   }
 }

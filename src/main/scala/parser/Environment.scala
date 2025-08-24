@@ -47,7 +47,7 @@ object Environment {
       new LoxCallable {
         override protected val arity: Int = 0
 
-        override def call(interpreter: Interpreter, arguments: Seq[Any]): Any =
+        override def call(arguments: Seq[Any]): Any =
           System.currentTimeMillis().toDouble / 1000.0
       }
     )

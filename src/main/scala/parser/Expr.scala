@@ -1,5 +1,7 @@
 package parser
 
+import parser.Statement.FunctionDeclaration
+import runtime.{FunctionCallable, Interpreter, LoxCallable}
 import tokens.{Token, TokenType}
 
 sealed trait Expr
@@ -233,7 +235,16 @@ object Expr {
       case Logical(expr, LogicalOperator.And, subsequentExpr) =>
         if !isTruthy(expr.evaluate) then expr.evaluate
         else subsequentExpr.evaluate
-      case Call(_, _, _) => ???
+      case Call(callee, closingParen, arguments) =>
+        callee.evaluate match {
+          case loxCallable: LoxCallable =>
+            loxCallable.call(arguments.map(_.evaluate))
+          case _ =>
+            throw RuntimeError(
+              closingParen,
+              s"${callee} was not of type LoxCallable"
+            )
+        }
     }
   }
 }

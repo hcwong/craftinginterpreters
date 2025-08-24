@@ -70,6 +70,8 @@ class Parser(
     try {
       if (checkAndAdvance(Seq(TokenType.VAR))) {
         Some(variableDeclaration())
+      } else if (checkAndAdvance(TokenType.FUN)) {
+        Some(functionDeclaration("function"))
       } else {
         Some(statement)
       }
@@ -88,13 +90,16 @@ class Parser(
     )
 
     consume(TokenType.LEFT_PAREN, s"Expected ( after $kind name")
-    val parameters = getFunctionParams(kind, mutable.ArrayBuffer.empty).toSeq
+    val parameters = if (checkAndAdvance(TokenType.RIGHT_PAREN)) {
+      Seq.empty
+    } else {
+      getFunctionParams(kind, mutable.ArrayBuffer.empty).toSeq
+    }
 
     consume(
       TokenType.LEFT_BRACE,
       s"Expected { after defining parameters for $kind"
     )
-    val functionBody = getStatementsInBlock()
 
     Statement.FunctionDeclaration(
       identifier,
@@ -113,13 +118,16 @@ class Parser(
         peek,
         s"$kind can't have more than ${Parser.MAX_ARG_SIZE} paramters"
       )
-    else if checkAndAdvance(TokenType.RIGHT_PAREN) then parameters
     else {
-      consume(TokenType.COMMA, s"Expected , between $kind parameters")
       parameters.append(
         consume(TokenType.IDENTIFIER, s"Expected $kind parameter after comma")
       )
-      getFunctionParams(kind, parameters)
+      if (checkAndAdvance(TokenType.RIGHT_PAREN)) {
+        parameters
+      } else {
+        consume(TokenType.COMMA, s"Expected , between $kind parameters")
+        getFunctionParams(kind, parameters)
+      }
     }
   }
 
@@ -169,7 +177,7 @@ class Parser(
       blockStatements.append(declaration)
     }
 
-    consume(TokenType.RIGHT_BRACE, "Expected } after block")
+    consume(TokenType.RIGHT_BRACE, s"Expected } after block, ${peek}")
     blockStatements.flatten.toSeq
   }
 
@@ -361,7 +369,11 @@ class Parser(
     val expr = primary
 
     if (checkAndAdvance(TokenType.LEFT_PAREN)) {
-      callRec(primary, Some(mutable.ArrayBuffer.empty[Expr]))
+      if (checkAndAdvance(TokenType.RIGHT_PAREN)) {
+        Expr.Call(expr, previous, Seq.empty[Expr])
+      } else {
+        callRec(expr, mutable.ArrayBuffer.empty[Expr])
+      }
     } else {
       expr
     }
@@ -371,32 +383,21 @@ class Parser(
   @tailrec
   private def callRec(
       expr: Expr,
-      arguments: Option[mutable.ArrayBuffer[Expr]]
+      args: mutable.ArrayBuffer[Expr]
   ): Expr = {
-    arguments match {
-      case Some(args) if args.size > Parser.MAX_ARG_SIZE =>
-        throw error(
-          peek,
-          s"Can't have more than ${Parser.MAX_ARG_SIZE} arguments, friend"
-        )
-      // If arguments is a Non-none value, we are actively looking for the closing brace
-      // So we want to search for either closing brace OR expr
-      case Some(args) =>
-        if checkAndAdvance(TokenType.RIGHT_PAREN) then
-          callRec(Expr.Call(expr, previous, args.toSeq), None)
-        else {
-          // If its not a closing brace, expect a comma before the next expression
-          consume(TokenType.COMMA, "Expected , between arguments")
-          args.append(expression)
-          callRec(expr, Some(args))
-        }
-      // Now, if arguments is None, there are two cases
-      // If the next token is left paren restart the Some(args) clause again
-      // Else we hit base case and can return expr
-      case None =>
-        if checkAndAdvance(TokenType.LEFT_PAREN) then
-          callRec(expr, Some(mutable.ArrayBuffer.empty[Expr]))
-        else expr
+    if (args.size > Parser.MAX_ARG_SIZE) {
+      throw error(
+        peek,
+        s"Can't have more than ${Parser.MAX_ARG_SIZE} arguments, friend"
+      )
+    } else {
+      args.append(expression)
+      if (checkAndAdvance(TokenType.RIGHT_PAREN)) {
+        Expr.Call(expr, previous, args.toSeq)
+      } else {
+        consume(TokenType.COMMA, "Expected , between arguments")
+        callRec(expr, args)
+      }
     }
   }
 

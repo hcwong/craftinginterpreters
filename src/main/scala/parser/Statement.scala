@@ -2,6 +2,7 @@ package parser
 
 import tokens.Token
 import Expr.isTruthy
+import runtime.FunctionCallable
 
 sealed trait Statement
 
@@ -51,7 +52,12 @@ object Statement {
           while (isTruthy(conditional.evaluate)) {
             bodyStatement.execute(environment)
           }
-        case FunctionDeclaration(_, _, _) => ???
+        case fnDeclaration: FunctionDeclaration =>
+          val callable = FunctionCallable(fnDeclaration)
+          environment.define(
+            fnDeclaration.name.lexeme,
+            callable
+          )
       }
       ()
     }
