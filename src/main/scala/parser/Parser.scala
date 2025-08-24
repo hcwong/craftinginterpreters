@@ -39,7 +39,7 @@ class Parser(
   // function -> IDENTIFIER '(' parameters? ')' block
   // parameters -> IDENTIFIER ( ',' IDENTIFIER )*
   // variabledeclaration -> 'var' IDENTIFIER (= expr)? ;
-  // statement -> exprstatement | ifstatement |  printstatement | if stmt | while stmt | for statement
+  // statement -> exprstatement | ifstatement |  printstatement | if stmt | while stmt | for statement | return stmt
   // exprstatement -> expr ;
   // printstatement -> print expr ;
   // “ifStmt         → "if" "(" expression ")" statement ( "else" statement )?
@@ -48,6 +48,7 @@ class Parser(
   //                 expression? ";"
   //                 expression? ")" statement ”
   // block statement -> '{' (declaration)* '}'
+  // return statement -> return expression ;
   // expr -> assignment
   // assignment -> IDENTIFIER '=' assignment | logic_or   (doesn't this grammar allow for multiple assignment statements to be chained? Not wrong I guess)
   // logic_or -> logic_and (OR logic_and )*
@@ -154,9 +155,9 @@ class Parser(
       consume(TokenType.LEFT_PAREN, "Expected ( after if keyword")
       val conditional = expression
       consume(TokenType.RIGHT_PAREN, "Expected ) after if condition")
-      val ifClause = expression
+      val ifClause = statement
       val elseClause = if (checkAndAdvance(Seq(TokenType.ELSE))) {
-        Some(expression)
+        Some(statement)
       } else None
       Statement.IfStatement(conditional, ifClause, elseClause)
     } else if (checkAndAdvance(Seq(TokenType.LEFT_BRACE))) {
@@ -165,6 +166,8 @@ class Parser(
       whileStatement()
     } else if (checkAndAdvance(TokenType.FOR)) {
       forStatement()
+    } else if (checkAndAdvance(TokenType.RETURN)) {
+      returnStatement()
     } else {
       expressionStatement()
     }
@@ -239,6 +242,17 @@ class Parser(
     Statement.BlockStatement(
       Seq(initializer, Some(whileLoop)).flatten
     )
+  }
+
+  private def returnStatement(): Statement = {
+    val returnKeyword = previous
+    val exprToReturn = if (checkAndAdvance(TokenType.SEMICOLON)) {
+      None
+    } else {
+      Some(expression)
+    }
+    consume(TokenType.SEMICOLON, "Expect semicolon after return expression")
+    Statement.ReturnStatement(returnKeyword, exprToReturn)
   }
 
   private def expression: Expr = assignment

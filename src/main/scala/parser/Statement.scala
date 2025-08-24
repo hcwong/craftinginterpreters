@@ -2,7 +2,7 @@ package parser
 
 import tokens.Token
 import Expr.isTruthy
-import runtime.FunctionCallable
+import runtime.{FunctionCallable, ReturnException}
 
 sealed trait Statement
 
@@ -15,8 +15,8 @@ object Statement {
   case class BlockStatement(statements: Seq[Statement]) extends Statement
   case class IfStatement(
       conditional: Expr,
-      ifClause: Expr,
-      elseClause: Option[Expr]
+      ifClause: Statement,
+      elseClause: Option[Statement]
   ) extends Statement
   case class WhileStatement(
       condition: Expr,
@@ -27,6 +27,11 @@ object Statement {
       name: Token,
       parameters: Seq[Token],
       body: Seq[Statement]
+  ) extends Statement
+
+  case class ReturnStatement(
+      returnKeyword: Token,
+      exprToReturn: Option[Expr]
   ) extends Statement
 
   extension (declaration: Statement) {
@@ -46,18 +51,24 @@ object Statement {
           statements.foreach(_.execute(environment))
         case IfStatement(conditional, ifClause, _)
             if isTruthy(conditional.evaluate) =>
-          ifClause.evaluate
-        case IfStatement(_, _, exprClause) => exprClause.foreach(_.evaluate)
+          ifClause.execute(environment)
+        case IfStatement(_, _, exprClause) =>
+          exprClause.foreach(_.execute(environment))
         case WhileStatement(conditional, bodyStatement) =>
           while (isTruthy(conditional.evaluate)) {
             bodyStatement.execute(environment)
           }
         case fnDeclaration: FunctionDeclaration =>
-          val callable = FunctionCallable(fnDeclaration)
+          val callable = FunctionCallable(environment, fnDeclaration)
           environment.define(
             fnDeclaration.name.lexeme,
             callable
           )
+        case ReturnStatement(_, returnExpr) =>
+          throw ReturnException(returnValue = returnExpr match {
+            case Some(value) => value.evaluate
+            case _           => Expr.Literal(null).evaluate
+          })
       }
       ()
     }
