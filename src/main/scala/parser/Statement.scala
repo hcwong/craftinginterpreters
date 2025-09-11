@@ -4,6 +4,8 @@ import tokens.Token
 import Expr.isTruthy
 import runtime.{FunctionCallable, ReturnException}
 
+import scala.collection.mutable
+
 sealed trait Statement
 
 object Statement {

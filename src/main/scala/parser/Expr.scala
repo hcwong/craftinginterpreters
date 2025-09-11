@@ -1,7 +1,6 @@
 package parser
 
-import parser.Statement.FunctionDeclaration
-import runtime.{FunctionCallable, Interpreter, LoxCallable}
+import runtime.LoxCallable
 import tokens.{Token, TokenType}
 
 sealed trait Expr
@@ -190,7 +189,6 @@ object Expr {
       arguments: Seq[Expr]
   ) extends Expr
 
-  // TODO: Use Scala 3 typeclasses to implement implicit resolution
   extension (expr: Expr) {
     def print: String = expr match {
       case TrueLiteral             => s"( Literal: true )"
@@ -249,4 +247,3 @@ object Expr {
   }
 }
 
-case class RuntimeError(token: Token, message: String) extends RuntimeException

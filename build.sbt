@@ -10,6 +10,5 @@ lazy val root = project
       "org.scalameta" %% "munit" % "1.0.0" % Test,
       "org.scala-lang" %% "toolkit" % "0.7.0",
       "org.jline" % "jline" % "3.25.1"
-    ),
-    offline := true
+    )
   )
