@@ -8,7 +8,7 @@ import scala.collection.mutable
 
 class Interpreter(private val environment: Environment = Environment.global) {
   private enum FunctionType {
-    case NONE, FUNCTION
+    case NONE, FUNCTION, METHOD
   }
 
   private val resolutionScope: mutable.Stack[ResolutionScope] =
@@ -123,10 +123,12 @@ class Interpreter(private val environment: Environment = Environment.global) {
           case whileStatement: Statement.WhileStatement =>
             whileStatement.condition.resolve(resolutionScopes)
             whileStatement.statement.resolve(resolutionScopes)
-          case classDeclaration: Statement.ClassDeclaration =>
-            resolutionScopes.declare(classDeclaration.name)
-            resolutionScopes.define(classDeclaration.name)
-          // TODO: Resolve the methods
+          case Statement.ClassDeclaration(name, methods) =>
+            resolutionScopes.declare(name)
+            resolutionScopes.define(name)
+            methods.foreach(
+              resolveFunction(resolutionScopes, _, FunctionType.METHOD)
+            )
         }
       }
     }
@@ -172,8 +174,11 @@ class Interpreter(private val environment: Environment = Environment.global) {
           case unaryExpr: Expr.Unary =>
             unaryExpr.expr.resolve(resolutionScopes)
           case literal: Expr.Literal => ()
-          case Expr.Get(callee, propertyName) =>
+          case Expr.Get(callee, _) =>
             callee.resolve(resolutionScopes)
+          case Expr.Set(calleeExpr, _, assignmentExpr) =>
+            assignmentExpr.resolve(resolutionScopes)
+            calleeExpr.resolve(resolutionScopes)
         }
     }
   }

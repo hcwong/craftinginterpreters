@@ -80,9 +80,18 @@ object Statement {
             case Some(value) => value.evaluate
             case _           => Expr.Literal(null).evaluate
           })
-        case ClassDeclaration(name, methods) =>
-          // The book first defines and then assign, but I think that's redunant?
-          environment.define(name.lexeme, LoxKlass(name.lexeme))
+        case ClassDeclaration(name, functionDeclarations) =>
+          // The book first defines and then assign, but I think that's redundant?
+          val methodsMap = functionDeclarations
+            .map(functionDeclaration =>
+              (
+                functionDeclaration.name.lexeme,
+                FunctionCallable(environment, locals, functionDeclaration)
+              )
+            )
+            .toMap
+          val klass = LoxKlass(name.lexeme, methodsMap)
+          environment.define(name.lexeme, klass)
       }
       ()
     }

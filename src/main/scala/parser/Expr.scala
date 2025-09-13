@@ -199,6 +199,9 @@ object Expr {
 
   case class Get(expr: Expr, propertyName: Token) extends Expr
 
+  case class Set(exprCallee: Expr, propertyName: Token, assignmentValue: Expr)
+      extends Expr
+
   extension (expr: Expr) {
     def print: String = expr match {
       case TrueLiteral             => s"( Literal: true )"
@@ -221,6 +224,8 @@ object Expr {
         s"( Call: ${callee.print}, ${closingParen.toString} with arguments: ${arguments.map(_.print).mkString(", ")}"
       case Get(callee, propertyName) =>
         s"( Get: ${callee.print} with property: $propertyName"
+      case Set(callee, propertyName, assignmentValue) =>
+        s"( Set: ${callee.print} with property: $propertyName to new value ${assignmentValue.print}"
     }
 
     def evaluate(using
@@ -281,6 +286,14 @@ object Expr {
             loxInstance.get(propertyName)
           case _ =>
             throw RuntimeError(propertyName, "Only instances have properties")
+        }
+
+      case Set(callee, propertyName, assignmentValue) =>
+        callee.evaluate match {
+          case loxInstance: LoxInstance =>
+            loxInstance.set(propertyName, assignmentValue.evaluate)
+          case _ =>
+            throw RuntimeError(propertyName, "Can only set on instances")
         }
     }
   }

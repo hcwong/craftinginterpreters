@@ -291,6 +291,10 @@ class Parser(
       expr match {
         case Variable(identifierToken) =>
           Assignment(identifierToken, assignmentExpr)
+        case Expr.Get(expr, propertyName) =>
+          // LHS of assignment operations can be really long
+          // To simplify, just evaluate if it matches a Get Expr
+          Expr.Set(expr, propertyName, assignmentExpr)
         case _ =>
           error(equalityToken, s"Invalid assignment target: ${expr.print}")
           expr
@@ -404,17 +408,22 @@ class Parser(
   private def call(): Expr = {
     val expr = primary
 
+    callRec(expr)
+  }
+
+  @tailrec
+  private def callRec(expr: Expr): Expr = {
     if (checkAndAdvance(TokenType.LEFT_PAREN)) {
       if (checkAndAdvance(TokenType.RIGHT_PAREN)) {
         Expr.Call(expr, previous, Seq.empty[Expr])
       } else {
-        callRec(expr, mutable.ArrayBuffer.empty[Expr])
+        finishCall(expr, mutable.ArrayBuffer.empty[Expr])
       }
     } else if (checkAndAdvance(TokenType.DOT)) {
       val propertyName =
         consume(TokenType.IDENTIFIER, "Expected propertyName after '.'")
 
-      Expr.Get(expr, propertyName)
+      callRec(Expr.Get(expr, propertyName))
     } else {
       expr
     }
@@ -422,7 +431,7 @@ class Parser(
 
   // Not the easiest to read, but challenging myself to avoid while true + break patterns
   @tailrec
-  private def callRec(
+  private def finishCall(
       expr: Expr,
       args: mutable.ArrayBuffer[Expr]
   ): Expr = {
@@ -437,7 +446,7 @@ class Parser(
         Expr.Call(expr, previous, args.toSeq)
       } else {
         consume(TokenType.COMMA, "Expected , between arguments")
-        callRec(expr, args)
+        finishCall(expr, args)
       }
     }
   }

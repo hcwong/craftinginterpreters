@@ -60,6 +60,11 @@ var f = "global";
 }
 
 // Chapter 12
-class Bagel{}
+class Bagel {
+  eat() {
+    print "Lox and Cheese";
+  }
+}
+
 var bagel = Bagel();
-print bagel;
+bagel.eat();
