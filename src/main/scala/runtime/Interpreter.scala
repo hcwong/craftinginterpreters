@@ -7,26 +7,40 @@ import LoxApp.LoxApp
 import scala.collection.mutable
 
 class Interpreter(private val environment: Environment = Environment.global) {
+  private enum FunctionType {
+    case NONE, FUNCTION
+  }
+
+  private val resolutionScope: mutable.Stack[ResolutionScope] =
+    mutable.Stack.empty
   private val locals: mutable.Map[Expr, Int] = mutable.Map.empty
+  private var currentFunctionType = FunctionType.NONE
+
+  def resolve(statement: Statement): Unit = {
+    import ResolutionOps._
+
+    statement.resolve(resolutionScope)
+  }
 
   def interpret(statement: Statement): Unit =
     try {
-      statement.execute(environment)
+      statement.execute(environment, locals)
     } catch {
       case e: RuntimeError => LoxApp.runtimeError(e)
       case _               => // let it pass
     }
 
-  def interpretBlock(statements: Seq[Statement], env: Environment): Unit = {
-    statements.foreach(stmt =>
-      try {
-        stmt.execute(env)
-      } catch {
-        case e: RuntimeError => LoxApp.runtimeError(e)
-        case _               => // let it pass
-      }
-    )
-  }
+  // Unused for reference only
+//  def interpretBlock(statements: Seq[Statement], env: Environment): Unit = {
+//    statements.foreach(stmt =>
+//      try {
+//        stmt.execute(env, locals)
+//      } catch {
+//        case e: RuntimeError => LoxApp.runtimeError(e)
+//        case _               => // let it pass
+//      }
+//    )
+//  }
 
   private def resolve(expr: Expr, depth: Int): Unit = locals(expr) = depth
 
@@ -35,22 +49,28 @@ class Interpreter(private val environment: Environment = Environment.global) {
       expr: Expr,
       name: Token
   ): Unit = {
-    resolutionScopes.zipWithIndex.reverseIterator
-      .find { case (scope, _) =>
+    // reverse iterator iterates from the top down
+    // it then finds the first scope that has the name and then resoves the distance,
+    // conveniently given by i
+    resolutionScopes.zipWithIndex
+      .find { case (scope, idx) =>
         scope.resolutionStatusByKey.contains(name.lexeme)
       }
       .foreach { case (_, i) =>
-        resolve(expr, resolutionScopes.size - 1 - i)
+        resolve(expr, i)
       }
   }
 
-  object ResolutionOps {
+  private object ResolutionOps {
     import parser.ResolutionScopeOps._
 
     private def resolveFunction(
         resolutionScopes: mutable.Stack[ResolutionScope],
-        functionDeclaration: Statement.FunctionDeclaration
+        functionDeclaration: Statement.FunctionDeclaration,
+        functionType: FunctionType
     ): Unit = {
+      val enclosingFunctionType = functionType
+      currentFunctionType = functionType
       resolutionScopes.beginScope()
       functionDeclaration.parameters.foreach(param => {
         resolutionScopes.define(param)
@@ -58,6 +78,7 @@ class Interpreter(private val environment: Environment = Environment.global) {
       })
       functionDeclaration.body.foreach(_.resolve(resolutionScopes))
       resolutionScopes.endScope()
+      currentFunctionType = enclosingFunctionType
     }
 
     extension (declaration: Statement) {
@@ -77,10 +98,21 @@ class Interpreter(private val environment: Environment = Environment.global) {
           case functionDeclaration: Statement.FunctionDeclaration =>
             resolutionScopes.declare(functionDeclaration.name)
             resolutionScopes.define(functionDeclaration.name)
-            resolveFunction(resolutionScopes, functionDeclaration)
+            resolveFunction(
+              resolutionScopes,
+              functionDeclaration,
+              FunctionType.FUNCTION
+            )
           case exprStatement: Statement.ExprStatement =>
             exprStatement.expr.resolve(resolutionScopes)
           case returnStatement: Statement.ReturnStatement =>
+            if (currentFunctionType == FunctionType.NONE) {
+              LoxApp.error(
+                returnStatement.returnKeyword,
+                "Can't return from top level code"
+              )
+            }
+
             returnStatement.exprToReturn.foreach(_.resolve(resolutionScopes))
           case ifStatement: Statement.IfStatement =>
             ifStatement.conditional.resolve(resolutionScopes)
@@ -101,16 +133,18 @@ class Interpreter(private val environment: Environment = Environment.global) {
       ): Unit =
         expr match {
           case variable: Expr.Variable =>
-            if resolutionScopes.nonEmpty && !resolutionScopes.top.resolutionStatusByKey
-                .contains(variable.variableToken.lexeme)
+            if resolutionScopes.nonEmpty && resolutionScopes.top.resolutionStatusByKey
+                .get(variable.variableToken.lexeme)
+                .contains(false)
             then {
               LoxApp.error(
                 variable.variableToken,
                 "Can't read local variable in its own initializer"
               )
+            } else
               resolveLocal(resolutionScopes, variable, variable.variableToken)
-            } else ()
           case assignment: Expr.Assignment =>
+            assignment.expr.resolve(resolutionScopes)
             resolveLocal(
               resolutionScopes,
               assignment,

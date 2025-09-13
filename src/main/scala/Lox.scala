@@ -67,7 +67,8 @@ object LoxApp {
     if (hadError) {
       ()
     } else {
-      statements.foreach(expr => interpreter.interpret(expr))
+      statements.foreach(stmt => interpreter.resolve(stmt))
+      statements.foreach(stmt => interpreter.interpret(stmt))
       ()
     }
   }

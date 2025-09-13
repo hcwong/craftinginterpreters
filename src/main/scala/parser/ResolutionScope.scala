@@ -1,5 +1,6 @@
 package parser
 
+import LoxApp.LoxApp
 import tokens.Token
 
 import scala.collection.mutable
@@ -18,6 +19,13 @@ object ResolutionScopeOps {
     def declare(token: Token): Unit = {
       resolutionScopes.headOption match {
         case Some(scope) =>
+          if (scope.resolutionStatusByKey.contains(token.lexeme)) {
+            LoxApp.error(
+              token,
+              "Already a variable with this name defined in scope"
+            )
+          }
+
           scope.resolutionStatusByKey.addOne((token.lexeme, false))
         case _ =>
       }

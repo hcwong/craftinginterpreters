@@ -1,6 +1,7 @@
 package parser
 
-import runtime.{Interpreter, LoxCallable}
+import LoxApp.LoxApp
+import runtime.LoxCallable
 import tokens.Token
 
 class Environment(
@@ -23,13 +24,34 @@ class Environment(
         )
     }
 
+  // There should be no need to look up enclosing env as that's already performed during resolution
+  def getAt(variableToken: Token, depth: Int): Any =
+    ancestor(depth).variableMap
+      .getOrElse(
+        variableToken.lexeme,
+        throw RuntimeError(
+          variableToken,
+          s"Missing variable after resolution: ${variableToken.lexeme}, when analyzing depth ${depth}"
+        )
+      )
+
+  // Likewise, no need to lookup enclosing env
+  def assignAt(variableName: String, value: Any, depth: Int): Any = {
+    ancestor(depth).define(variableName, value)
+    value
+  }
+
+  private def ancestor(depth: Int): Environment =
+    (0 until depth).foldLeft(this)((env, _) => env.enclosing.get)
+
   def assign(variableToken: Token, value: Any): Any =
     if (variableMap.contains(variableToken.lexeme)) {
       define(variableToken.lexeme, value)
       value
     } else {
       enclosing match {
-        case Some(enclosingEnv) => enclosingEnv.get(variableToken)
+        case Some(enclosingEnv) =>
+          enclosingEnv.assign(variableToken, value)
         case None =>
           throw RuntimeError(
             variableToken,

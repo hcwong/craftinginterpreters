@@ -3,6 +3,8 @@ package parser
 import runtime.LoxCallable
 import tokens.{Token, TokenType}
 
+import scala.collection.mutable
+
 sealed trait Expr
 
 /** I dislike the Visitor Pattern I implement expressions as an ADT
@@ -34,7 +36,10 @@ object Expr {
 
   // TODO: Narrow down the type of operator. Not all tokens are operators
   case class Unary(operator: Token, expr: Expr) extends Expr {
-    def evaluateUnary(using environment: Environment) = {
+    def evaluateUnary(using
+        environment: Environment,
+        locals: mutable.Map[Expr, Int]
+    ) = {
       val exprEvaluated = expr.evaluate
 
       operator.tokenType match {
@@ -59,7 +64,10 @@ object Expr {
 
   case class Binary(leftExpr: Expr, operator: Token, rightExpr: Expr)
       extends Expr {
-    def evaluateBinary(using environment: Environment) = {
+    def evaluateBinary(using
+        environment: Environment,
+        locals: mutable.Map[Expr, Int]
+    ) = {
       val leftExprEvaluated = leftExpr.evaluate
       val rightExprEvaluated = rightExpr.evaluate
 
@@ -211,22 +219,42 @@ object Expr {
         s"( Call: ${callee.print}, ${closingParen.toString} with arguments: ${arguments.map(_.print).mkString(", ")}"
     }
 
-    // Fun idea: Try to make it somehow more typed? No to dynamically typed languages
-    def evaluate(using environment: Environment): Any = expr match {
-      case TrueLiteral             => true
-      case FalseLiteral            => false
-      case StringLiteral(value)    => value
-      case DoubleLiteral(value)    => value
-      case NullLiteral             => None
-      case Variable(variableToken) => environment.get(variableToken)
-      case unary: Unary            => unary.evaluateUnary
-      case binary: Binary          => binary.evaluateBinary
+    def evaluate(using
+        environment: Environment,
+        locals: mutable.Map[Expr, Int]
+    ): Any = expr match {
+      case TrueLiteral          => true
+      case FalseLiteral         => false
+      case StringLiteral(value) => value
+      case DoubleLiteral(value) => value
+      case NullLiteral          => None
+      case varExpr: Variable =>
+        locals.get(varExpr) match {
+          case Some(depth) =>
+            environment.getAt(varExpr.variableToken, depth)
+          case None =>
+            Environment.global.get(varExpr.variableToken)
+        }
+      case unary: Unary   => unary.evaluateUnary
+      case binary: Binary => binary.evaluateBinary
       case Ternary(condition, positive, negative) =>
         if (isTruthy(condition.evaluate)) { positive.evaluate }
         else { negative.evaluate }
       case Grouping(expr) => expr.evaluate
-      case Assignment(identifierToken, expr) =>
-        environment.assign(identifierToken, expr.evaluate)
+      case assignmentExpr: Assignment =>
+        locals.get(assignmentExpr) match {
+          case Some(depth) =>
+            environment.assignAt(
+              assignmentExpr.identifierToken.lexeme,
+              assignmentExpr.expr.evaluate,
+              depth
+            )
+          case None =>
+            Environment.global.assign(
+              assignmentExpr.identifierToken,
+              assignmentExpr.expr.evaluate
+            )
+        }
       case Logical(expr, LogicalOperator.Or, subsequentExpr) =>
         if isTruthy(expr.evaluate) then expr.evaluate
         else subsequentExpr.evaluate
@@ -246,4 +274,3 @@ object Expr {
     }
   }
 }
-

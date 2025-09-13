@@ -37,8 +37,12 @@ object Statement {
   ) extends Statement
 
   extension (declaration: Statement) {
-    def execute(environment: Environment): Unit = {
+    def execute(
+        environment: Environment,
+        locals: mutable.Map[Expr, Int]
+    ): Unit = {
       given Environment = environment
+      given mutable.Map[Expr, Int] = locals
       declaration match {
         case PrintStatement(expr) =>
           println(expr.evaluate)
@@ -50,18 +54,18 @@ object Statement {
           environment.define(identifier.lexeme, value)
         case BlockStatement(statements) =>
           val blockEnv = Environment(enclosing = environment)
-          statements.foreach(_.execute(environment))
+          statements.foreach(_.execute(blockEnv, locals))
         case IfStatement(conditional, ifClause, _)
             if isTruthy(conditional.evaluate) =>
-          ifClause.execute(environment)
+          ifClause.execute(environment, locals)
         case IfStatement(_, _, exprClause) =>
-          exprClause.foreach(_.execute(environment))
+          exprClause.foreach(_.execute(environment, locals))
         case WhileStatement(conditional, bodyStatement) =>
           while (isTruthy(conditional.evaluate)) {
-            bodyStatement.execute(environment)
+            bodyStatement.execute(environment, locals)
           }
         case fnDeclaration: FunctionDeclaration =>
-          val callable = FunctionCallable(environment, fnDeclaration)
+          val callable = FunctionCallable(environment, locals, fnDeclaration)
           environment.define(
             fnDeclaration.name.lexeme,
             callable
