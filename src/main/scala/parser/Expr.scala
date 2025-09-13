@@ -202,6 +202,8 @@ object Expr {
   case class Set(exprCallee: Expr, propertyName: Token, assignmentValue: Expr)
       extends Expr
 
+  case class This(keyword: Token) extends Expr
+
   extension (expr: Expr) {
     def print: String = expr match {
       case TrueLiteral             => s"( Literal: true )"
@@ -226,6 +228,7 @@ object Expr {
         s"( Get: ${callee.print} with property: $propertyName"
       case Set(callee, propertyName, assignmentValue) =>
         s"( Set: ${callee.print} with property: $propertyName to new value ${assignmentValue.print}"
+      case This(keyword) => s"( This: keyword is token ${keyword}"
     }
 
     def evaluate(using
@@ -287,7 +290,6 @@ object Expr {
           case _ =>
             throw RuntimeError(propertyName, "Only instances have properties")
         }
-
       case Set(callee, propertyName, assignmentValue) =>
         callee.evaluate match {
           case loxInstance: LoxInstance =>
@@ -295,6 +297,15 @@ object Expr {
           case _ =>
             throw RuntimeError(propertyName, "Can only set on instances")
         }
+      case thisExpr: This =>
+        environment.getAt(
+          thisExpr.keyword,
+          locals
+            .getOrElse(
+              thisExpr,
+              throw RuntimeError(thisExpr.keyword, "could not resolve this")
+            )
+        )
     }
   }
 }

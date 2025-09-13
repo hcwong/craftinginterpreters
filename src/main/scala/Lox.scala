@@ -64,10 +64,10 @@ object LoxApp {
     val parser = Parser(tokens = tokens)
     val statements = parser.parse
 
+    statements.foreach(stmt => interpreter.resolve(stmt))
     if (hadError) {
       ()
     } else {
-      statements.foreach(stmt => interpreter.resolve(stmt))
       statements.foreach(stmt => interpreter.interpret(stmt))
       ()
     }

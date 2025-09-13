@@ -486,6 +486,10 @@ class Parser(
           consume(TokenType.RIGHT_PAREN, "Expected ')' after expression")
           Expr.Grouping(expr)
 
+        case TokenType.THIS =>
+          advance()
+          Expr.This(previous)
+
         case TokenType.IDENTIFIER =>
           advance()
           previous.literal match

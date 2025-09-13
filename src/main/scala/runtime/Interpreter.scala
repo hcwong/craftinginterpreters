@@ -10,11 +10,16 @@ class Interpreter(private val environment: Environment = Environment.global) {
   private enum FunctionType {
     case NONE, FUNCTION, METHOD
   }
+  private enum ClassType {
+    case NONE, CLASS
+  }
 
   private val resolutionScope: mutable.Stack[ResolutionScope] =
     mutable.Stack.empty
   private val locals: mutable.Map[Expr, Int] = mutable.Map.empty
+
   private var currentFunctionType = FunctionType.NONE
+  private var currentClassType = ClassType.NONE
 
   def resolve(statement: Statement): Unit = {
     import ResolutionOps._
@@ -124,11 +129,23 @@ class Interpreter(private val environment: Environment = Environment.global) {
             whileStatement.condition.resolve(resolutionScopes)
             whileStatement.statement.resolve(resolutionScopes)
           case Statement.ClassDeclaration(name, methods) =>
+            val enclosingClassType = currentClassType
+            currentClassType = ClassType.CLASS
+
             resolutionScopes.declare(name)
             resolutionScopes.define(name)
+
+            // Implicitly bind this for resolution
+            resolutionScopes.beginScope()
+            resolutionScopes.headOption.map(scope =>
+              scope.resolutionStatusByKey.addOne("this", true)
+            )
             methods.foreach(
               resolveFunction(resolutionScopes, _, FunctionType.METHOD)
             )
+
+            resolutionScopes.endScope()
+            currentClassType = enclosingClassType
         }
       }
     }
@@ -179,6 +196,15 @@ class Interpreter(private val environment: Environment = Environment.global) {
           case Expr.Set(calleeExpr, _, assignmentExpr) =>
             assignmentExpr.resolve(resolutionScopes)
             calleeExpr.resolve(resolutionScopes)
+          case thisExpr: Expr.This =>
+            if (currentClassType == ClassType.NONE) {
+              LoxApp.error(
+                thisExpr.keyword,
+                "Cannot use 'this' outside of a class"
+              )
+            } else {
+              resolveLocal(resolutionScope, thisExpr, thisExpr.keyword)
+            }
         }
     }
   }

@@ -29,4 +29,10 @@ case class FunctionCallable(
   }
 
   override def toString: String = s"fn: ${functionDeclaration.name.lexeme}"
+
+  def bind(instance: LoxInstance): LoxCallable = {
+    val boundEnvWithThis = Environment(environment)
+    boundEnvWithThis.define("this", instance)
+    FunctionCallable(boundEnvWithThis, locals, functionDeclaration)
+  }
 }

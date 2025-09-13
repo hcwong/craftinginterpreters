@@ -56,18 +56,14 @@ var f = "global";
   showF(); // global
 }
 
-// Should throw resolution error
-{
-  var g = "hey";
-  var g = "hey there";
-}
-
 // Chapter 12
-class Bagel {
-  eat() {
-    print "Lox and Cheese";
+class Cake {
+  taste() {
+    var adjective = "delicious";
+    print "The " + this.flavor + " cake is " + adjective + "!";
   }
 }
 
-var bagel = Bagel();
-bagel.eat();
+var cake = Cake();
+cake.flavor = "German chocolate";
+cake.taste(); // "The German chocolate cake is delicious"

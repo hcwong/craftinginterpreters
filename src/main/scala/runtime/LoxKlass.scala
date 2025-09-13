@@ -36,7 +36,7 @@ case class LoxInstance(klass: LoxKlass) {
       // Preferentially resolve to field first, thus supporting "shadow methods"
       case (Some(fieldValue), Some(_)) =>
         fieldValue
-      case (None, Some(methodValue)) => methodValue
+      case (None, Some(methodValue)) => methodValue.bind(this)
       case (Some(fieldValue), None)  => fieldValue
       case (None, None) =>
         throw RuntimeError(
