@@ -49,8 +49,8 @@ class Interpreter(private val environment: Environment = Environment.global) {
       expr: Expr,
       name: Token
   ): Unit = {
-    // reverse iterator iterates from the top down
-    // it then finds the first scope that has the name and then resoves the distance,
+    // iterates from the top of the stack
+    // it then finds the first scope that has the name and then resolves the distance,
     // conveniently given by i
     resolutionScopes.zipWithIndex
       .find { case (scope, idx) =>
