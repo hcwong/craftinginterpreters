@@ -2,7 +2,7 @@ package parser
 
 import tokens.Token
 import Expr.isTruthy
-import runtime.{FunctionCallable, ReturnException}
+import runtime.{FunctionCallable, LoxKlass, ReturnException}
 
 import scala.collection.mutable
 
@@ -34,6 +34,11 @@ object Statement {
   case class ReturnStatement(
       returnKeyword: Token,
       exprToReturn: Option[Expr]
+  ) extends Statement
+
+  case class ClassDeclaration(
+      name: Token,
+      methods: Seq[FunctionDeclaration]
   ) extends Statement
 
   extension (declaration: Statement) {
@@ -75,6 +80,9 @@ object Statement {
             case Some(value) => value.evaluate
             case _           => Expr.Literal(null).evaluate
           })
+        case ClassDeclaration(name, methods) =>
+          // The book first defines and then assign, but I think that's redunant?
+          environment.define(name.lexeme, LoxKlass(name.lexeme))
       }
       ()
     }

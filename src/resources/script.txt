@@ -58,3 +58,8 @@ var f = "global";
   var g = "hey";
   var g = "hey there";
 }
+
+// Chapter 12
+class Bagel{}
+var bagel = Bagel();
+print bagel;

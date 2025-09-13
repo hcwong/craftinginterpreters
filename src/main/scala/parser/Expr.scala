@@ -1,6 +1,6 @@
 package parser
 
-import runtime.LoxCallable
+import runtime.{LoxCallable, LoxInstance}
 import tokens.{Token, TokenType}
 
 import scala.collection.mutable
@@ -197,6 +197,8 @@ object Expr {
       arguments: Seq[Expr]
   ) extends Expr
 
+  case class Get(expr: Expr, propertyName: Token) extends Expr
+
   extension (expr: Expr) {
     def print: String = expr match {
       case TrueLiteral             => s"( Literal: true )"
@@ -217,6 +219,8 @@ object Expr {
         s"( Logical: ${expr.print}, $operator.toString, ${subsequentExpr.print}"
       case Call(callee, closingParen, arguments) =>
         s"( Call: ${callee.print}, ${closingParen.toString} with arguments: ${arguments.map(_.print).mkString(", ")}"
+      case Get(callee, propertyName) =>
+        s"( Get: ${callee.print} with property: $propertyName"
     }
 
     def evaluate(using
@@ -270,6 +274,13 @@ object Expr {
               closingParen,
               s"${callee} was not of type LoxCallable"
             )
+        }
+      case Get(callee, propertyName) =>
+        callee.evaluate match {
+          case loxInstance: LoxInstance =>
+            loxInstance.get(propertyName)
+          case _ =>
+            throw RuntimeError(propertyName, "Only instances have properties")
         }
     }
   }

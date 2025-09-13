@@ -123,6 +123,10 @@ class Interpreter(private val environment: Environment = Environment.global) {
           case whileStatement: Statement.WhileStatement =>
             whileStatement.condition.resolve(resolutionScopes)
             whileStatement.statement.resolve(resolutionScopes)
+          case classDeclaration: Statement.ClassDeclaration =>
+            resolutionScopes.declare(classDeclaration.name)
+            resolutionScopes.define(classDeclaration.name)
+          // TODO: Resolve the methods
         }
       }
     }
@@ -168,6 +172,8 @@ class Interpreter(private val environment: Environment = Environment.global) {
           case unaryExpr: Expr.Unary =>
             unaryExpr.expr.resolve(resolutionScopes)
           case literal: Expr.Literal => ()
+          case Expr.Get(callee, propertyName) =>
+            callee.resolve(resolutionScopes)
         }
     }
   }

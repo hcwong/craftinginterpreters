@@ -34,7 +34,8 @@ class Parser(
 
   // The complete grammar is as follows expression -> ternary
   // program -> declaration * EOF
-  // declaration -> function declaration | variabledeclaration | statement | block statement
+  // declaration -> class declaration | function declaration | variabledeclaration | statement | block statement
+  // class declaration -> class IDENTIFIER '{' function* '}'
   // function declaration -> "fun" function
   // function -> IDENTIFIER '(' parameters? ')' block
   // parameters -> IDENTIFIER ( ',' IDENTIFIER )*
@@ -50,7 +51,7 @@ class Parser(
   // block statement -> '{' (declaration)* '}'
   // return statement -> return expression ;
   // expr -> assignment
-  // assignment -> IDENTIFIER '=' assignment | logic_or   (doesn't this grammar allow for multiple assignment statements to be chained? Not wrong I guess)
+  // assignment -> ( call '.' )? IDENTIFIER '=' assignment | logic_or   (doesn't this grammar allow for multiple assignment statements to be chained? Not wrong I guess)
   // logic_or -> logic_and (OR logic_and )*
   // logic_and -> ternary (AND ternary)*
   // ternary -> equality ('?' expr ':' expr)*
@@ -59,7 +60,7 @@ class Parser(
   // term -> factor ( '+' | '-' factor)* factors are higher precedence than term due to BODMAS
   // factor -> unary ('*' | '/' unary)*
   // unary -> ('-' | '!' unary)* | call
-  // call -> primary ( '(' arguments? ')' )*
+  // call -> primary ( '(' arguments? ')' | '.' IDENTIFIER )*
   // arguments -> expression ( ',' expression )*
   // primary -> boolean | number | string | null | parentheses expression (expr) | IDENTIFIER
   //
@@ -73,6 +74,8 @@ class Parser(
         Some(variableDeclaration())
       } else if (checkAndAdvance(TokenType.FUN)) {
         Some(functionDeclaration("function"))
+      } else if (checkAndAdvance(TokenType.CLASS)) {
+        Some(classDeclaration())
       } else {
         Some(statement)
       }
@@ -83,8 +86,27 @@ class Parser(
     }
   }
 
+  private def classDeclaration(): Statement = {
+    val className = consume(TokenType.IDENTIFIER, s"Expected class name")
+
+    val methods = mutable.ArrayBuffer.empty[Statement.FunctionDeclaration]
+    consume(TokenType.LEFT_BRACE, "Expected '{' after class name")
+
+    while (!checkType(TokenType.RIGHT_BRACE) && !isAtEnd) {
+      methods.append(functionDeclaration("method"))
+    }
+
+    consume(TokenType.RIGHT_BRACE, "Expected '}' after declaring class methods")
+    Statement.ClassDeclaration(
+      className,
+      methods.toSeq
+    )
+  }
+
   // Kind: Could be method, function etc
-  private def functionDeclaration(kind: String): Statement = {
+  private def functionDeclaration(
+      kind: String
+  ): Statement.FunctionDeclaration = {
     val identifier = consume(
       TokenType.IDENTIFIER,
       s"Expected $kind name"
@@ -388,6 +410,11 @@ class Parser(
       } else {
         callRec(expr, mutable.ArrayBuffer.empty[Expr])
       }
+    } else if (checkAndAdvance(TokenType.DOT)) {
+      val propertyName =
+        consume(TokenType.IDENTIFIER, "Expected propertyName after '.'")
+
+      Expr.Get(expr, propertyName)
     } else {
       expr
     }

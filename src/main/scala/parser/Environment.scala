@@ -1,6 +1,5 @@
 package parser
 
-import LoxApp.LoxApp
 import runtime.LoxCallable
 import tokens.Token
 
