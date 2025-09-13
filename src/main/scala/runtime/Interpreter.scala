@@ -73,8 +73,8 @@ class Interpreter(private val environment: Environment = Environment.global) {
       currentFunctionType = functionType
       resolutionScopes.beginScope()
       functionDeclaration.parameters.foreach(param => {
-        resolutionScopes.define(param)
         resolutionScopes.declare(param)
+        resolutionScopes.define(param)
       })
       functionDeclaration.body.foreach(_.resolve(resolutionScopes))
       resolutionScopes.endScope()

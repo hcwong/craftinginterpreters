@@ -406,34 +406,33 @@ class Parser(
   }
 
   private def call(): Expr = {
-    val expr = primary
+    @tailrec
+    def callRec(expr: Expr): Expr = {
+      if (checkAndAdvance(TokenType.LEFT_PAREN)) {
+        if (checkAndAdvance(TokenType.RIGHT_PAREN)) {
+          Expr.Call(expr, previous, Seq.empty[Expr])
+        } else {
+          finishCall(expr, List.empty[Expr])
+        }
+      } else if (checkAndAdvance(TokenType.DOT)) {
+        val propertyName =
+          consume(TokenType.IDENTIFIER, "Expected propertyName after '.'")
 
-    callRec(expr)
-  }
-
-  @tailrec
-  private def callRec(expr: Expr): Expr = {
-    if (checkAndAdvance(TokenType.LEFT_PAREN)) {
-      if (checkAndAdvance(TokenType.RIGHT_PAREN)) {
-        Expr.Call(expr, previous, Seq.empty[Expr])
+        callRec(Expr.Get(expr, propertyName))
       } else {
-        finishCall(expr, mutable.ArrayBuffer.empty[Expr])
+        expr
       }
-    } else if (checkAndAdvance(TokenType.DOT)) {
-      val propertyName =
-        consume(TokenType.IDENTIFIER, "Expected propertyName after '.'")
-
-      callRec(Expr.Get(expr, propertyName))
-    } else {
-      expr
     }
+
+    val expr = primary
+    callRec(expr)
   }
 
   // Not the easiest to read, but challenging myself to avoid while true + break patterns
   @tailrec
   private def finishCall(
       expr: Expr,
-      args: mutable.ArrayBuffer[Expr]
+      args: List[Expr]
   ): Expr = {
     if (args.size > Parser.MAX_ARG_SIZE) {
       throw error(
@@ -441,12 +440,12 @@ class Parser(
         s"Can't have more than ${Parser.MAX_ARG_SIZE} arguments, friend"
       )
     } else {
-      args.append(expression)
+      val newArgs = args :+ expression
       if (checkAndAdvance(TokenType.RIGHT_PAREN)) {
-        Expr.Call(expr, previous, args.toSeq)
+        Expr.Call(expr, previous, newArgs)
       } else {
         consume(TokenType.COMMA, "Expected , between arguments")
-        finishCall(expr, args)
+        finishCall(expr, newArgs)
       }
     }
   }
