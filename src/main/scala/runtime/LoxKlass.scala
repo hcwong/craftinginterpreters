@@ -1,5 +1,6 @@
 package runtime
 
+import LoxApp.Constants
 import parser.RuntimeError
 import tokens.Token
 
@@ -9,9 +10,19 @@ case class LoxKlass(name: String, methods: Map[String, FunctionCallable])
     extends LoxCallable {
   override def toString: String = name
 
-  val arity: Int = 0
+  val arity: Int =
+    findMethod(Constants.INIT_FUNCTION) match {
+      case Some(initFunc) => initFunc.arity
+      case None           => 0
+    }
 
-  override def call(arguments: Seq[Any]): Any = LoxInstance(klass = this)
+  override def call(arguments: Seq[Any]): Any = {
+    val instance = LoxInstance(klass = this)
+    findMethod(Constants.INIT_FUNCTION) match {
+      case Some(initFunc) => initFunc.bind(instance).call(arguments)
+      case None           => instance
+    }
+  }
 
   def findMethod(name: String): Option[FunctionCallable] = methods.get(name)
 }

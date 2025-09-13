@@ -3,6 +3,7 @@ package parser
 import tokens.Token
 import Expr.isTruthy
 import runtime.{FunctionCallable, LoxKlass, ReturnException}
+import LoxApp.Constants
 
 import scala.collection.mutable
 
@@ -70,7 +71,8 @@ object Statement {
             bodyStatement.execute(environment, locals)
           }
         case fnDeclaration: FunctionDeclaration =>
-          val callable = FunctionCallable(environment, locals, fnDeclaration)
+          val callable =
+            FunctionCallable(environment, locals, fnDeclaration, false)
           environment.define(
             fnDeclaration.name.lexeme,
             callable
@@ -86,7 +88,12 @@ object Statement {
             .map(functionDeclaration =>
               (
                 functionDeclaration.name.lexeme,
-                FunctionCallable(environment, locals, functionDeclaration)
+                FunctionCallable(
+                  environment,
+                  locals,
+                  functionDeclaration,
+                  functionDeclaration.name.lexeme == Constants.INIT_FUNCTION
+                )
               )
             )
             .toMap

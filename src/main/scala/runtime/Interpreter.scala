@@ -2,13 +2,13 @@ package runtime
 
 import parser.{Environment, Expr, ResolutionScope, RuntimeError, Statement}
 import tokens.Token
-import LoxApp.LoxApp
+import LoxApp.{LoxApp, Constants}
 
 import scala.collection.mutable
 
 class Interpreter(private val environment: Environment = Environment.global) {
   private enum FunctionType {
-    case NONE, FUNCTION, METHOD
+    case NONE, FUNCTION, METHOD, INITIALIZER
   }
   private enum ClassType {
     case NONE, CLASS
@@ -118,7 +118,19 @@ class Interpreter(private val environment: Environment = Environment.global) {
               )
             }
 
-            returnStatement.exprToReturn.foreach(_.resolve(resolutionScopes))
+            // Returns are allowed, its just that it cannot return any value
+            // empty returns will always return this
+            // The idea is that early returns are still useful, else
+            // we could move this if clause up as an else if clause
+            returnStatement.exprToReturn.foreach { stmt =>
+              if (currentFunctionType == FunctionType.INITIALIZER) {
+                LoxApp.error(
+                  returnStatement.returnKeyword,
+                  "Can't return a value from an initializer"
+                )
+              }
+              stmt.resolve(resolutionScopes)
+            }
           case ifStatement: Statement.IfStatement =>
             ifStatement.conditional.resolve(resolutionScopes)
             ifStatement.ifClause.resolve(resolutionScopes)
@@ -140,9 +152,13 @@ class Interpreter(private val environment: Environment = Environment.global) {
             resolutionScopes.headOption.map(scope =>
               scope.resolutionStatusByKey.addOne("this", true)
             )
-            methods.foreach(
-              resolveFunction(resolutionScopes, _, FunctionType.METHOD)
-            )
+            methods.foreach { method =>
+              val functionType =
+                if method.name.lexeme == Constants.INIT_FUNCTION then
+                  FunctionType.INITIALIZER
+                else FunctionType.METHOD
+              resolveFunction(resolutionScopes, method, FunctionType.METHOD)
+            }
 
             resolutionScopes.endScope()
             currentClassType = enclosingClassType

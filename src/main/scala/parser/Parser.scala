@@ -268,7 +268,7 @@ class Parser(
 
   private def returnStatement(): Statement = {
     val returnKeyword = previous
-    val exprToReturn = if (checkAndAdvance(TokenType.SEMICOLON)) {
+    val exprToReturn = if (checkType(TokenType.SEMICOLON)) {
       None
     } else {
       Some(expression)

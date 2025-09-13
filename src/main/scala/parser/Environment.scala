@@ -34,6 +34,9 @@ class Environment(
         )
       )
 
+  def getAt(variableName: String, depth: Int): Any =
+    ancestor(depth).variableMap(variableName)
+
   // Likewise, no need to lookup enclosing env
   def assignAt(variableName: String, value: Any, depth: Int): Any = {
     ancestor(depth).define(variableName, value)
