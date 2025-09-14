@@ -2,13 +2,15 @@
 .DS_Store
 
 # sbt specific
-dist/*
-target/
+slox/dist/*
+slox/target/
 lib_managed/
 src_managed/
-project/boot/
-project/plugins/project/
-project/local-plugins.sbt
+slox/project/boot/
+slox/project/plugins/project/
+slox/project/local-plugins.sbt
+slox/project/project/
+slox/project/target/
 .history
 .ensime
 .ensime_cache/
@@ -16,7 +18,7 @@ project/local-plugins.sbt
 local.sbt
 
 # Bloop
-.bsp
+slox/.bsp
 
 # VS Code
 .vscode/
@@ -27,6 +29,6 @@ local.sbt
 metals.sbt
 
 # IDEA
-.idea
-.idea_modules
+slox/.idea
+slox/.idea_modules
 /.worksheet/
