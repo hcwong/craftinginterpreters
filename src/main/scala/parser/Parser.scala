@@ -35,7 +35,7 @@ class Parser(
   // The complete grammar is as follows expression -> ternary
   // program -> declaration * EOF
   // declaration -> class declaration | function declaration | variabledeclaration | statement | block statement
-  // class declaration -> class IDENTIFIER '{' function* '}'
+  // class declaration -> class IDENTIFIER ('<' IDENTIFIER) ?  '{' function* '}'
   // function declaration -> "fun" function
   // function -> IDENTIFIER '(' parameters? ')' block
   // parameters -> IDENTIFIER ( ',' IDENTIFIER )*
@@ -89,6 +89,15 @@ class Parser(
   private def classDeclaration(): Statement = {
     val className = consume(TokenType.IDENTIFIER, s"Expected class name")
 
+    val superclass =
+      if checkAndAdvance(TokenType.LESS) then
+        Some(
+          Expr.Variable(
+            consume(TokenType.IDENTIFIER, "Expected superclass name after '<'")
+          )
+        )
+      else None
+
     val methods = mutable.ArrayBuffer.empty[Statement.FunctionDeclaration]
     consume(TokenType.LEFT_BRACE, "Expected '{' after class name")
 
@@ -99,6 +108,7 @@ class Parser(
     consume(TokenType.RIGHT_BRACE, "Expected '}' after declaring class methods")
     Statement.ClassDeclaration(
       className,
+      superclass,
       methods.toSeq
     )
   }
@@ -406,26 +416,26 @@ class Parser(
   }
 
   private def call(): Expr = {
-    @tailrec
-    def callRec(expr: Expr): Expr = {
-      if (checkAndAdvance(TokenType.LEFT_PAREN)) {
-        if (checkAndAdvance(TokenType.RIGHT_PAREN)) {
-          Expr.Call(expr, previous, Seq.empty[Expr])
-        } else {
-          finishCall(expr, List.empty[Expr])
-        }
-      } else if (checkAndAdvance(TokenType.DOT)) {
-        val propertyName =
-          consume(TokenType.IDENTIFIER, "Expected propertyName after '.'")
-
-        callRec(Expr.Get(expr, propertyName))
-      } else {
-        expr
-      }
-    }
-
     val expr = primary
     callRec(expr)
+  }
+
+  @tailrec
+  private def callRec(expr: Expr): Expr = {
+    if (checkAndAdvance(TokenType.LEFT_PAREN)) {
+      if (checkAndAdvance(TokenType.RIGHT_PAREN)) {
+        callRec(Expr.Call(expr, previous, Seq.empty[Expr]))
+      } else {
+        finishCall(expr, List.empty[Expr])
+      }
+    } else if (checkAndAdvance(TokenType.DOT)) {
+      val propertyName =
+        consume(TokenType.IDENTIFIER, "Expected propertyName after '.'")
+
+      callRec(Expr.Get(expr, propertyName))
+    } else {
+      expr
+    }
   }
 
   // Not the easiest to read, but challenging myself to avoid while true + break patterns
@@ -442,7 +452,7 @@ class Parser(
     } else {
       val newArgs = args :+ expression
       if (checkAndAdvance(TokenType.RIGHT_PAREN)) {
-        Expr.Call(expr, previous, newArgs)
+        callRec(Expr.Call(expr, previous, newArgs))
       } else {
         consume(TokenType.COMMA, "Expected , between arguments")
         finishCall(expr, newArgs)

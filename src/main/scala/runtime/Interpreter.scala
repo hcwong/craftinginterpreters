@@ -140,12 +140,22 @@ class Interpreter(private val environment: Environment = Environment.global) {
           case whileStatement: Statement.WhileStatement =>
             whileStatement.condition.resolve(resolutionScopes)
             whileStatement.statement.resolve(resolutionScopes)
-          case Statement.ClassDeclaration(name, methods) =>
+          case Statement.ClassDeclaration(name, superclass, methods) =>
             val enclosingClassType = currentClassType
             currentClassType = ClassType.CLASS
 
             resolutionScopes.declare(name)
             resolutionScopes.define(name)
+
+            superclass.foreach { superclassExpr =>
+              if (superclassExpr.variableToken.lexeme == name.lexeme) {
+                LoxApp.error(
+                  superclassExpr.variableToken,
+                  "Superclass name must be different from class name"
+                )
+              }
+              superclassExpr.resolve(resolutionScopes)
+            }
 
             // Implicitly bind this for resolution
             resolutionScopes.beginScope()

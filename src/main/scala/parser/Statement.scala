@@ -39,6 +39,7 @@ object Statement {
 
   case class ClassDeclaration(
       name: Token,
+      superclass: Option[Expr.Variable],
       methods: Seq[FunctionDeclaration]
   ) extends Statement
 
@@ -82,7 +83,19 @@ object Statement {
             case Some(value) => value.evaluate
             case _           => Expr.Literal(null).evaluate
           })
-        case ClassDeclaration(name, functionDeclarations) =>
+        case ClassDeclaration(name, superclass, functionDeclarations) =>
+          val superklass = superclass
+            .map(expr => (expr.evaluate, expr))
+            .map { (evaluated, expr) =>
+              evaluated match
+                case klass: LoxKlass => klass
+                case _ =>
+                  throw RuntimeError(
+                    expr.variableToken,
+                    "Superclass has to be a class"
+                  )
+            }
+
           // The book first defines and then assign, but I think that's redundant?
           val methodsMap = functionDeclarations
             .map(functionDeclaration =>
@@ -97,7 +110,7 @@ object Statement {
               )
             )
             .toMap
-          val klass = LoxKlass(name.lexeme, methodsMap)
+          val klass = LoxKlass(name.lexeme, superklass, methodsMap)
           environment.define(name.lexeme, klass)
       }
       ()

@@ -6,8 +6,11 @@ import tokens.Token
 
 import scala.collection.mutable
 
-case class LoxKlass(name: String, methods: Map[String, FunctionCallable])
-    extends LoxCallable {
+case class LoxKlass(
+    name: String,
+    superclass: Option[LoxKlass],
+    methods: Map[String, FunctionCallable]
+) extends LoxCallable {
   override def toString: String = name
 
   val arity: Int =
@@ -24,7 +27,8 @@ case class LoxKlass(name: String, methods: Map[String, FunctionCallable])
     }
   }
 
-  def findMethod(name: String): Option[FunctionCallable] = methods.get(name)
+  def findMethod(name: String): Option[FunctionCallable] =
+    methods.get(name).orElse(superclass.flatMap(_.findMethod(name)))
 }
 
 case class LoxInstance(klass: LoxKlass) {
