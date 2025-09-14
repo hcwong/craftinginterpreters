@@ -76,12 +76,22 @@ class Bread {
 }
 Bread("sourdough");
 
-class Doughnut {
-  cook() {
-    print "Fry until golden brown.";
+// Chapter 13 - Inheritance
+class A {
+  method() {
+    print "A method";
   }
 }
 
-class BostonCream < Doughnut {}
+class B < A {
+  method() {
+    print "B method";
+  }
 
-BostonCream().cook();
+  test() {
+    super.method();
+  }
+}
+
+class C < B {}
+C().test();  // A method

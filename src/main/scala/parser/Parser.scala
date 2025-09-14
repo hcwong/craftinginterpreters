@@ -62,7 +62,7 @@ class Parser(
   // unary -> ('-' | '!' unary)* | call
   // call -> primary ( '(' arguments? ')' | '.' IDENTIFIER )*
   // arguments -> expression ( ',' expression )*
-  // primary -> boolean | number | string | null | parentheses expression (expr) | IDENTIFIER
+  // primary -> boolean | number | string | null | parentheses expression (expr) | IDENTIFIER | super '.' IDENTIFIER
   //
   // Note that we are careful to avoid left recursion, and in no part of the
   // grammar do we call the same rule as the first term. Else we would stack
@@ -497,8 +497,16 @@ class Parser(
           Expr.Grouping(expr)
 
         case TokenType.THIS =>
-          advance()
-          Expr.This(previous)
+          Expr.This(advance())
+
+        case TokenType.SUPER =>
+          val superKeyword = advance()
+          consume(TokenType.DOT, "Expect '.' after super")
+          val method = consume(
+            TokenType.IDENTIFIER,
+            "Expect super method after calling 'super.'"
+          )
+          Expr.Super(superKeyword, method)
 
         case TokenType.IDENTIFIER =>
           advance()

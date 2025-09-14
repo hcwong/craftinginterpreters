@@ -2,7 +2,7 @@ package runtime
 
 import parser.{Environment, Expr, ResolutionScope, RuntimeError, Statement}
 import tokens.Token
-import LoxApp.{LoxApp, Constants}
+import LoxApp.{Constants, LoxApp}
 
 import scala.collection.mutable
 
@@ -11,7 +11,7 @@ class Interpreter(private val environment: Environment = Environment.global) {
     case NONE, FUNCTION, METHOD, INITIALIZER
   }
   private enum ClassType {
-    case NONE, CLASS
+    case NONE, CLASS, SUBCLASS
   }
 
   private val resolutionScope: mutable.Stack[ResolutionScope] =
@@ -154,7 +154,14 @@ class Interpreter(private val environment: Environment = Environment.global) {
                   "Superclass name must be different from class name"
                 )
               }
+              currentClassType = ClassType.SUBCLASS
               superclassExpr.resolve(resolutionScopes)
+
+              // bind super using another scope
+              resolutionScopes.beginScope()
+              resolutionScopes.headOption.foreach(scope =>
+                scope.resolutionStatusByKey.put("super", true)
+              )
             }
 
             // Implicitly bind this for resolution
@@ -171,6 +178,7 @@ class Interpreter(private val environment: Environment = Environment.global) {
             }
 
             resolutionScopes.endScope()
+            superclass.foreach(_ => resolutionScopes.endScope())
             currentClassType = enclosingClassType
         }
       }
@@ -231,6 +239,19 @@ class Interpreter(private val environment: Environment = Environment.global) {
             } else {
               resolveLocal(resolutionScope, thisExpr, thisExpr.keyword)
             }
+          case superExpr: Expr.Super =>
+            if (currentClassType == ClassType.NONE) {
+              LoxApp.error(
+                superExpr.keyword,
+                "Can't use super outside of a class"
+              )
+            } else if (currentClassType != ClassType.SUBCLASS) {
+              LoxApp.error(
+                superExpr.keyword,
+                "Can't use super in a top level clas"
+              )
+            }
+            resolveLocal(resolutionScope, superExpr, superExpr.keyword)
         }
     }
   }

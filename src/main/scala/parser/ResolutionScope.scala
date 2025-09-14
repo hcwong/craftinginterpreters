@@ -16,6 +16,9 @@ object ResolutionScopeOps {
 
     def endScope(): Unit = resolutionScopes.pop()
 
+    // declaration and definition are split into two different steps mainly to
+    // handle edge cases where initializer for the variable holds a reference to the variable
+    // only after we resolve the initializer expr (and make sure its' free from bugs do we actually declare it)
     def declare(token: Token): Unit = {
       resolutionScopes.headOption match {
         case Some(scope) =>

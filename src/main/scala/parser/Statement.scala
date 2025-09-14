@@ -96,13 +96,21 @@ object Statement {
                   )
             }
 
-          // The book first defines and then assign, but I think that's redundant?
+          val maybeOverriddenEnvironment = superklass match {
+            case Some(klass) =>
+              val overriddenEnv = Environment(environment)
+              overriddenEnv.define("super", klass)
+              overriddenEnv
+            case None => environment
+          }
+
+          // The book first defines null and then assign, but I think that's redundant?
           val methodsMap = functionDeclarations
             .map(functionDeclaration =>
               (
                 functionDeclaration.name.lexeme,
                 FunctionCallable(
-                  environment,
+                  maybeOverriddenEnvironment,
                   locals,
                   functionDeclaration,
                   functionDeclaration.name.lexeme == Constants.INIT_FUNCTION
@@ -111,6 +119,8 @@ object Statement {
             )
             .toMap
           val klass = LoxKlass(name.lexeme, superklass, methodsMap)
+          // Don't use the super()-ed environment when defining the actual class name
+          // We only store a reference to the superclass for the methods later
           environment.define(name.lexeme, klass)
       }
       ()

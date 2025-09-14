@@ -1,6 +1,6 @@
 package parser
 
-import runtime.{LoxCallable, LoxInstance}
+import runtime.{LoxCallable, LoxInstance, LoxKlass}
 import tokens.{Token, TokenType}
 
 import scala.collection.mutable
@@ -204,6 +204,8 @@ object Expr {
 
   case class This(keyword: Token) extends Expr
 
+  case class Super(keyword: Token, method: Token) extends Expr
+
   extension (expr: Expr) {
     def print: String = expr match {
       case TrueLiteral             => s"( Literal: true )"
@@ -227,8 +229,10 @@ object Expr {
       case Get(callee, propertyName) =>
         s"( Get: ${callee.print} with property: $propertyName"
       case Set(callee, propertyName, assignmentValue) =>
-        s"( Set: ${callee.print} with property: $propertyName to new value ${assignmentValue.print}"
-      case This(keyword) => s"( This: keyword is token ${keyword}"
+        s"( Set: ${callee.print} with property: $propertyName to new value ${assignmentValue.print} )"
+      case This(keyword) => s"( This: keyword is token ${keyword} )"
+      case Super(keyword, method) =>
+        s"( Super: ${keyword} with method ${method} )"
     }
 
     def evaluate(using
@@ -306,6 +310,51 @@ object Expr {
               throw RuntimeError(thisExpr.keyword, "could not resolve this")
             )
         )
+      case superExpr: Super =>
+        val superklass = environment.getAt(
+          superExpr.keyword,
+          locals
+            .getOrElse(
+              superExpr,
+              throw RuntimeError(superExpr.keyword, "could not resolve super")
+            )
+        )
+        superklass match {
+          case klass: LoxKlass =>
+            val loxInstance = environment.getAt(
+              "this",
+              locals
+                .getOrElse(
+                  superExpr,
+                  throw RuntimeError(
+                    superExpr.keyword,
+                    "could not resolve super"
+                  )
+                ) - 1
+            )
+
+            loxInstance match {
+              case instance: LoxInstance =>
+                klass.findMethod(superExpr.method.lexeme) match {
+                  case Some(method) => method.bind(instance)
+                  case None =>
+                    throw RuntimeError(
+                      superExpr.method,
+                      "method does not exist on superclass"
+                    )
+                }
+              case _ =>
+                throw RuntimeError(
+                  superExpr.keyword,
+                  "Trouble resolving 'this' when calling super"
+                )
+            }
+          case _ =>
+            throw RuntimeError(
+              superExpr.keyword,
+              "super is not a class instance"
+            )
+        }
     }
   }
 }

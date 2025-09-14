@@ -49,6 +49,8 @@ case class LoxInstance(klass: LoxKlass) {
       klass.findMethod(propertyToken.lexeme)
     ) match {
       // Preferentially resolve to field first, thus supporting "shadow methods"
+      // Like JavaScript, this means that if we use the same name for a field
+      // we will return the field definition instead
       case (Some(fieldValue), Some(_)) =>
         fieldValue
       case (None, Some(methodValue)) => methodValue.bind(this)
