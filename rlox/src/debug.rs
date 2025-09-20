@@ -6,21 +6,21 @@ use crate::chunk::OpCode;
 pub fn disassemble_chunk(chunk: &Chunk, name: &str) {
   print!("==== {name} ====\n");
 
-  let mut index: u8 = 0;
+  let mut index: usize = 0;
 
-  while (index as usize) < chunk.get_codes().len() {
+  while (index) < chunk.get_codes().len() {
     // Unsafe narrowing here
-    index = disassemble_instruction(chunk, chunk.get_codes()[index as usize], index)
+    index = disassemble_instruction(chunk, chunk.get_codes()[index], index)
   }
 }
 
-fn disassemble_instruction(chunk: &Chunk, opcode: u8, index: u8) -> u8 {
+fn disassemble_instruction(chunk: &Chunk, opcode: u8, index: usize) -> usize {
   print!("{index} ");
 
-  if index > 0 && chunk.line_numbers[index as usize] == chunk.line_numbers[(index as usize) - 1] {
+  if index > 0 && chunk.line_numbers[index] == chunk.line_numbers[(index) - 1] {
     print!(" | ")
   } else {
-    print!("{}", chunk.line_numbers[index as usize])
+    print!("{}", chunk.line_numbers[index])
   }
 
   match OpCode::try_from(opcode) {
@@ -33,13 +33,13 @@ fn disassemble_instruction(chunk: &Chunk, opcode: u8, index: u8) -> u8 {
   }
 }
 
-fn simple_instruction(name: &str, index: u8) -> u8 {
+fn simple_instruction(name: &str, index: usize) -> usize {
    println!("{name}");
    return index + 1;
 }
 
-fn constant_instruction(name: &str, chunk: &Chunk, index: u8) -> u8 {
-   let constant = chunk.get_codes()[(index + 1) as usize];
+fn constant_instruction(name: &str, chunk: &Chunk, index: usize) -> usize {
+   let constant = chunk.get_codes()[index + 1];
    print!(" {name} {constant} ");
    let value = chunk.get_value(constant);
    print!("'{value}'\n");

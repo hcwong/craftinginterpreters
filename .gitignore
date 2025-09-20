@@ -32,3 +32,6 @@ metals.sbt
 slox/.idea
 slox/.idea_modules
 /.worksheet/
+
+# rlox
+rlox/target/
