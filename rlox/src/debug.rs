@@ -14,7 +14,7 @@ pub fn disassemble_chunk(chunk: &Chunk, name: &str) {
   }
 }
 
-fn disassemble_instruction(chunk: &Chunk, opcode: u8, index: usize) -> usize {
+pub fn disassemble_instruction(chunk: &Chunk, opcode: u8, index: usize) -> usize {
   print!("{index} ");
 
   if index > 0 && chunk.line_numbers[index] == chunk.line_numbers[(index) - 1] {

@@ -1,5 +1,6 @@
 mod chunk;
 mod debug;
+mod vm;
 
 fn main() {
     use chunk::Chunk;
