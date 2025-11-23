@@ -10,9 +10,14 @@ fn main() {
     let constant = chunk.add_constant(1.2);
     chunk.write_chunk(OpCode::OpConstant.into(), 123);
     chunk.write_chunk(constant as u8, 123);
+    
+    chunk.write_chunk(OpCode::OpNegate.into(), 123);
 
     chunk.write_chunk(OpCode::OpReturn.into(), 123);
 
     
     debug::disassemble_chunk(&chunk, "test chunk");
+
+    let mut vm = vm::VM::new();
+    vm.interpret(chunk);
 }

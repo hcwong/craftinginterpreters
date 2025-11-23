@@ -26,6 +26,7 @@ pub fn disassemble_instruction(chunk: &Chunk, opcode: u8, index: usize) -> usize
   match OpCode::try_from(opcode) {
     Ok(OpCode::OpReturn) => return simple_instruction("OP_RETURN", index),
     Ok(OpCode::OpConstant) => return constant_instruction("OP_CONSTANT", chunk, index),
+    Ok(OpCode::OpNegate) => return simple_instruction("OP_NEGATE", index),
     Err(_) => { 
       println!("Unknown instruction: {opcode}");
       return index + 1 

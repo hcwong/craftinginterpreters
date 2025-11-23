@@ -8,7 +8,8 @@ type Value = f64;
 #[derive(Copy, Clone, Debug)]
 pub enum OpCode {
   OpReturn = 1,
-  OpConstant = 2
+  OpConstant = 2,
+  OpNegate = 3,
 }
 
 impl From<OpCode> for u8 {
@@ -21,6 +22,7 @@ impl TryFrom<u8> for OpCode {
         match value {
             1 => Ok(OpCode::OpReturn),
             2 => Ok(OpCode::OpConstant),
+            3 => Ok(OpCode::OpNegate),
             _ => Err(()),
         }
     }
